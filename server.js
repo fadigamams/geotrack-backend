@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -24,6 +25,10 @@ app.use(express.json({ limit: '200kb' }));
 app.use('/api/', rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'geotrack-backend' }));
+
+// Sert l'application GeoTrack World (frontend) depuis ce même serveur —
+// évite tout blocage réseau lié à un domaine externe.
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/positions', positionRoutes);

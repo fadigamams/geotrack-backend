@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GeoTrack World</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+:root{
+  --navy:#0f1e3d; --navy-2:#16294e; --blue:#2f6fed; --blue-dark:#1f52c9;
+  --green:#1fae5b; --green-bg:#e7f7ee; --orange:#f59f1a; --orange-bg:#fef3e0;
+  --red:#e5484d; --red-bg:#fdeceb; --violet:#7c5cff; --violet-bg:#f0ecff;
+  --ink:#101828; --sub:#667085; --line:#e6e9f0; --bg:#f5f7fb; --card:#ffffff;
+  --radius:14px;
+  box-sizing:border-box;
+  padding-top: env(safe-area-inset-top,0px); padding-bottom: env(safe-area-inset-bottom,0px);
+}
+:root[data-theme="dark"]{
+  --ink:#eef1f8; --sub:#9aa4b8; --line:#28334d; --bg:#0b1226; --card:#121a33;
+  --green-bg:#0f2a1e; --orange-bg:#2c220c; --red-bg:#2c1416; --violet-bg:#1f1a3b;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg); color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+
+.app{display:grid; grid-template-columns:240px 1fr; min-height:100vh}
+.sidebar{
+  background:var(--navy); color:#cdd7ef; padding:22px 16px;
+  display:flex; flex-direction:column; gap:22px;
+}
+.brand{display:flex; align-items:center; gap:10px; padding:0 6px}
+.brand .globe{
+  width:34px;height:34px;border-radius:9px;
+  background:radial-gradient(circle at 30% 30%, #4d7bf0, #16294e);
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.brand h1{font-size:15px;margin:0;color:#fff;font-weight:700}
+.brand p{margin:1px 0 0;font-size:11px;color:#8fa0c9}
+
+nav{display:flex;flex-direction:column;gap:2px}
+.navitem{
+  display:flex;align-items:center;gap:10px; padding:9px 10px; border-radius:9px;
+  font-size:13.5px; color:#b9c4e0; font-weight:500; border:none; background:none; text-align:left;
+}
+.navitem .ic{width:18px;text-align:center;font-size:14px}
+.navitem.active{background:var(--blue); color:#fff}
+.navitem:not(.active):hover{background:var(--navy-2); color:#fff}
+.navitem .badge{
+  margin-left:auto;background:var(--red);color:#fff;font-size:10.5px;
+  border-radius:20px;padding:1px 7px;font-weight:700;
+}
+.sidebar-foot{
+  margin-top:auto; display:flex; align-items:center; gap:10px; padding:10px;
+  border-top:1px solid #253157;
+}
+.avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#4d7bf0,#7c5cff);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;
+}
+.sidebar-foot .name{font-size:13px;font-weight:600;color:#fff}
+.sidebar-foot .role{font-size:11px;color:#8fa0c9}
+
+main{padding:20px 26px 50px; max-width:1180px}
+.topbar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:18px}
+.pill{
+  display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);
+  padding:7px 12px;border-radius:20px;font-size:12.5px;font-weight:600;color:var(--sub)
+}
+.bell{position:relative;width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px}
+.bell .dot{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid var(--card)}
+.toggle{display:flex;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:3px;gap:2px}
+.toggle button{border:none;background:none;padding:6px 13px;border-radius:16px;font-size:12.5px;font-weight:600;color:var(--sub)}
+.toggle button.on{background:var(--blue);color:#fff}
+
+h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
+.sub{color:var(--sub);font-size:13.5px;margin:0 0 20px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px}
+.stat .row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.stat .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.stat.g .ic{background:var(--green-bg)} .stat.b .ic{background:#e8f0fe} .stat.v .ic{background:var(--violet-bg)} .stat.o .ic{background:var(--orange-bg)}
+.stat .label{font-size:12px;color:var(--sub);font-weight:600}
+.stat .val{font-size:20px;font-weight:800}
+.stat .note{font-size:11.5px;color:var(--sub);margin-top:2px}
+
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.card h3{font-size:14.5px;margin:0;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.card h3 .see{font-size:12px;color:var(--blue);font-weight:600}
+
+.mapwrap{position:relative}
+#map{height:360px;width:100%;background:#dde5f0}
+.poscard{
+  position:absolute;top:12px;left:12px;background:var(--card);border-radius:11px;padding:12px 14px;
+  box-shadow:0 6px 20px rgba(20,30,60,.18); font-size:12.5px; z-index:500; min-width:190px;
+}
+.poscard .dot{color:var(--green)}
+.poscard .place{font-weight:700;font-size:13.5px;margin:2px 0}
+.poscard .meta{color:var(--sub);line-height:1.6}
+.simbadge{
+  position:absolute;bottom:12px;left:12px;z-index:500;background:var(--orange-bg);color:#8a5a06;
+  border:1px solid var(--orange); font-weight:700; font-size:11px; padding:5px 10px; border-radius:20px;
+}
+.simbadge.real{background:var(--green-bg);color:#0e6b3a;border-color:var(--green)}
+.actions{display:flex;gap:10px;padding:14px 16px}
+.btn{flex:1;padding:11px;border-radius:10px;border:none;font-weight:700;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn.share{background:var(--green);color:#fff}
+.btn.stop{background:var(--red);color:#fff}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);flex:0 0 auto;padding:11px 14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.list{padding:6px 8px}
+.row-item{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:9px}
+.row-item:hover{background:var(--bg)}
+.row-item .av{width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.row-item .info{flex:1;min-width:0}
+.row-item .info .n{font-size:13px;font-weight:600}
+.row-item .info .t{font-size:11.5px;color:var(--sub)}
+.tag{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px}
+.tag.actif{background:var(--green-bg);color:#0e6b3a}
+.trip{padding:9px 8px;border-radius:9px}
+.trip .n{font-size:12.5px;font-weight:600}
+.trip .t{font-size:11px;color:var(--sub);margin-top:2px}
+
+.footstats{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line)}
+.footstats div{flex:1;text-align:center;font-size:11.5px;color:var(--sub)}
+.footstats b{display:block;font-size:16px;color:var(--ink)}
+
+.grptabs{display:flex;gap:8px;flex-wrap:wrap}
+.gtab{background:var(--card);border:1px solid var(--line);padding:7px 13px;border-radius:20px;font-size:12.5px;font-weight:600;color:var(--sub)}
+.gtab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+.rc-status{font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.rc-status.on{color:#0e6b3a} .rc-status.pending{color:#8a5a06} .rc-status.off{color:var(--sub)} .rc-status.stopped{color:#b3242a}
+.linkbtn{background:none;border:1px solid var(--line);color:var(--blue);font-weight:700;font-size:11.5px;padding:6px 11px;border-radius:8px;white-space:nowrap}
+.linkbtn.fav{border-color:var(--orange);color:#8a5a06}
+.rep-row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:9px}
+.rep-row:hover{background:var(--bg)}
+.rep-row .info{flex:1;min-width:0}
+.rep-row .n{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.rep-row .phone{font-size:11.5px;color:var(--sub)}
+.rep-row .meta{font-size:11px;color:var(--sub);margin-top:1px}
+.rep-row .actions2{display:flex;gap:6px;flex-shrink:0}
+
+.maptoggle{position:absolute;top:12px;right:12px;z-index:500;display:flex;background:var(--card);border-radius:9px;padding:3px;box-shadow:0 4px 14px rgba(20,30,60,.15)}
+.maptoggle button{border:none;background:none;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;color:var(--sub)}
+.maptoggle button.on{background:var(--navy);color:#fff}
+.placecard{
+  position:absolute;bottom:56px;right:12px;background:var(--card);border-radius:11px;padding:10px 13px;
+  box-shadow:0 6px 20px rgba(20,30,60,.18); z-index:500; display:flex; gap:9px; align-items:center; max-width:190px;
+}
+.placecard .pc-ic{width:30px;height:30px;border-radius:8px;background:var(--orange-bg);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.placecard .pc-t{font-size:10px;color:var(--sub);font-weight:600}
+.placecard .pc-n{font-size:12.5px;font-weight:700}
+.placecard .pc-m{font-size:11px;color:var(--sub)}
+
+.hist-row{display:flex;align-items:flex-start;gap:10px;padding:10px 8px;border-radius:9px;cursor:pointer}
+.hist-row:hover{background:var(--bg)}
+.hist-row .hdot{font-size:10px;margin-top:4px}
+.hist-row .hdot.blue{color:var(--blue)} .hist-row .hdot.orange{color:var(--orange)} .hist-row .hdot.green{color:var(--green)}
+.hist-row .n{font-size:13px;font-weight:600}
+.hist-row .t{font-size:11.5px;color:var(--sub);margin-top:1px}
+#histMap, #zoneMap{height:190px;border-radius:10px;overflow:hidden}
+.notif-row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:9px}
+.notif-row:hover{background:var(--bg)}
+.notif-row .nic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.notif-row .nic.red{background:var(--red-bg)} .notif-row .nic.orange{background:var(--orange-bg)} .notif-row .nic.green{background:var(--green-bg)} .notif-row .nic.blue{background:#e8f0fe}
+.notif-row .n{font-size:13px;font-weight:600}
+.notif-row .t{font-size:11.5px;color:var(--sub)}
+
+.tag.stopped{background:var(--red-bg);color:#b3242a}
+.ftable{width:100%;border-collapse:collapse;font-size:12.5px}
+.ftable th{text-align:left;color:var(--sub);font-weight:600;font-size:11.5px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.ftable td{padding:10px 16px;border-bottom:1px solid var(--line)}
+.ftable tr:last-child td{border-bottom:none}
+#fleetMap, #deliveryMap{height:190px;border-radius:10px;overflow:hidden}
+
+.delivery-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.dl-n{font-size:15px;font-weight:700}
+.dl-t{font-size:12px;color:var(--sub);margin-top:2px}
+.dl-steps{display:flex;gap:6px;margin-bottom:16px}
+.dl-step{flex:1;text-align:center;font-size:11px;color:var(--sub);font-weight:600}
+.dl-step .dot{width:26px;height:26px;border-radius:50%;background:var(--bg);border:2px solid var(--line);margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--sub)}
+.dl-step.done .dot{background:var(--green);border-color:var(--green);color:#fff}
+.dl-step.active{color:var(--ink)}
+.dl-stats{display:flex;gap:10px;margin-bottom:16px}
+.dl-stats div{flex:1;background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.dl-stats b{display:block;font-size:16px}
+.dl-stats span{font-size:11px;color:var(--sub)}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(10,15,30,.5);display:none;align-items:center;justify-content:center;z-index:2000;padding:20px}
+.overlay.show{display:flex}
+.modal{background:var(--card);border-radius:16px;max-width:340px;width:100%;padding:22px;text-align:center}
+.modal .pin{width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.modal h4{margin:0 0 4px;font-size:16px}
+.modal p{margin:0 0 16px;font-size:12.5px;color:var(--sub)}
+.durations{display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:16px}
+.durations label{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:500}
+.durations input{accent-color:var(--blue)}
+.consent{font-size:11px;color:var(--sub);text-align:left;margin-bottom:14px;line-height:1.5}
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;
+  padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:3000;opacity:0;
+  transition:opacity .25s; pointer-events:none;
+}
+.toast.show{opacity:1}
+
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:1fr}
+  main{padding:14px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="globe">🌍</div>
+      <div><h1>GeoTrack World</h1><p>Votre position, notre priorité</p></div>
+    </div>
+    <nav>
+      <button class="navitem active" data-view="dashboard"><span class="ic">🏠</span>Tableau de bord</button>
+      <button class="navitem"><span class="ic">📍</span>Ma position</button>
+      <button class="navitem" data-view="repertoire"><span class="ic">📒</span>Répertoire</button>
+      <button class="navitem" data-view="groupes"><span class="ic">🔗</span>Partages</button>
+      <button class="navitem"><span class="ic">🗺️</span>Carte</button>
+      <button class="navitem" data-view="historique"><span class="ic">🛣️</span>Historique</button>
+      <button class="navitem" data-view="vehicules"><span class="ic">🚗</span>Véhicules</button>
+      <button class="navitem" data-view="livraisons"><span class="ic">🚚</span>Livraisons</button>
+      <button class="navitem" data-view="zones"><span class="ic">📐</span>Zones</button>
+      <button class="navitem" id="sosNav"><span class="ic">🚨</span>SOS</button>
+      <button class="navitem" data-view="notifications"><span class="ic">🔔</span>Notifications<span class="badge">3</span></button>
+      <button class="navitem"><span class="ic">🔐</span>Sécurité</button>
+      <button class="navitem"><span class="ic">⚙️</span>Paramètres</button>
+    </nav>
+    <button class="navitem" data-view="admin" style="border-top:1px solid #253157;margin-top:4px;padding-top:12px"><span class="ic">🛠️</span>Espace administration</button>
+    <div class="sidebar-foot">
+      <div class="avatar">FM</div>
+      <div><div class="name">Fadiga Mamery</div><div class="role">Utilisateur</div></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="pill" id="apiCfgBtn" style="cursor:pointer" title="Adresse du serveur API">⚙️ <span id="apiCfgLabel">API non configurée</span></div>
+      <div class="pill">🇫🇷 FR</div>
+      <div class="pill">🔔<span id="notifCount">3</span></div>
+      <div class="toggle">
+        <button id="themeLight" class="on">Mode clair</button>
+        <button id="themeDark">Mode sombre</button>
+      </div>
+    </div>
+    <div id="view-dashboard" class="pageview">
+    <h2 class="hello">Bonjour Fadiga Mamery 👋</h2>
+    <p class="sub">Voici un aperçu de votre activité de géolocalisation.</p>
+
+    <div class="stats">
+      <div class="stat g"><div class="row"><div class="ic">📍</div></div><div class="label">Ma position</div><div class="val" id="statShare">Non partagée</div><div class="note" id="statShareNote">Activez le partage</div></div>
+      <div class="stat b"><div class="row"><div class="ic">👥</div></div><div class="label">Personnes autorisées</div><div class="val">3</div><div class="note">Voir la liste</div></div>
+      <div class="stat v"><div class="row"><div class="ic">🚙</div></div><div class="label">Véhicules suivis</div><div class="val">2</div><div class="note">Voir les véhicules</div></div>
+      <div class="stat o"><div class="row"><div class="ic">📦</div></div><div class="label">Livraisons en cours</div><div class="val">1</div><div class="note">Voir les livraisons</div></div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card mapwrap">
+          <div id="map"></div>
+          <div class="maptoggle">
+            <button class="on" id="satBtn">Satellite</button>
+            <button id="planBtn">Plan</button>
+          </div>
+          <div class="poscard">
+            <div><span class="dot">●</span> <b>Position actuelle</b></div>
+            <div class="place" id="placeName">Abidjan, Côte d'Ivoire</div>
+            <div class="meta">
+              Précision : <span id="accVal">8</span> m<br>
+              Dernière mise à jour : <span id="updVal">—</span>
+            </div>
+          </div>
+          <div class="placecard">
+            <div class="pc-ic">🏨</div>
+            <div><div class="pc-t">Type de lieu détecté</div><div class="pc-n">Hôtel Ivoire</div><div class="pc-m">200 m</div></div>
+          </div>
+          <div class="simbadge" id="simBadge">🟠 SIMULATION</div>
+          <div class="actions">
+            <button class="btn share" id="shareBtn">📍 Partager ma position</button>
+            <button class="btn stop" id="stopBtn" disabled>🛑 Arrêter le partage</button>
+            <button class="btn ghost" id="gmapsBtn">🧭 Voir sur la carte</button>
+          </div>
+          <div class="footstats">
+            <div><b id="ptsToday">12</b>positions aujourd'hui</div>
+            <div><b id="kmToday">8</b>km parcourus</div>
+            <div><b>2</b>alertes</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <h3>Mes partages actifs <span class="see">Voir tout</span></h3>
+          <div class="list">
+            <div class="row-item"><div class="av">M</div><div class="info"><div class="n">Marie (Conjoint)</div><div class="t">Jusqu'à 14:32</div></div><span class="tag actif">Actif</span></div>
+            <div class="row-item"><div class="av">P</div><div class="info"><div class="n">Papa (Famille)</div><div class="t">2 h restantes</div></div><span class="tag actif">Actif</span></div>
+            <div class="row-item"><div class="av">🚗</div><div class="info"><div class="n">Véhicule Toyota</div><div class="t">En continu</div></div><span class="tag actif">Actif</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Derniers déplacements <span class="see">Voir tout</span></h3>
+          <div class="list">
+            <div class="trip"><div class="n">Domicile → Travail</div><div class="t">08:12 – 08:45 (33 min)</div></div>
+            <div class="trip"><div class="n">Travail → Restaurant</div><div class="t">12:05 – 12:32 (27 min)</div></div>
+            <div class="trip"><div class="n">Restaurant → Hôtel</div><div class="t">18:10 – 18:45 (35 min)</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /dashboardView -->
+
+    <div id="view-repertoire" class="pageview" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px">
+        <div>
+          <h2 class="hello">📒 Répertoire</h2>
+          <p class="sub">Les personnes de votre répertoire qui utilisent GeoTrack et ont autorisé le partage.</p>
+        </div>
+        <button class="btn share" style="flex:none" id="syncBtn">🔄 Synchroniser mes contacts</button>
+      </div>
+
+      <div class="grptabs" id="grpTabs">
+        <button class="gtab on" data-g="tous">Tous</button>
+        <button class="gtab" data-g="famille">👨‍👩‍👧 Famille</button>
+        <button class="gtab" data-g="amis">👥 Amis</button>
+        <button class="gtab" data-g="travail">🏢 Travail</button>
+        <button class="gtab" data-g="favoris">⭐ Favoris</button>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h3>Contacts <span class="see" id="repCount">4</span></h3>
+        <div class="list" id="repList"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>Qui peut voir ma position ?</h3>
+        <div class="list">
+          <div class="row-item"><div class="av">M</div><div class="info"><div class="n">Marie (Conjoint)</div><div class="t">Autorisée jusqu'à 14:32</div></div><button class="linkbtn" data-revoke="Marie">Révoquer</button></div>
+          <div class="row-item"><div class="av">P</div><div class="info"><div class="n">Papa (Famille)</div><div class="t">Autorisé — 2 h restantes</div></div><button class="linkbtn" data-revoke="Papa">Révoquer</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-historique" class="pageview" style="display:none">
+      <h2 class="hello">🛣️ Historique</h2>
+      <p class="sub">Déplacements enregistrés uniquement lorsque le partage était actif.</p>
+      <div class="card">
+        <h3>15 sept. 2025</h3>
+        <div class="list">
+          <div class="hist-row" data-route="Domicile → Travail"><span class="hdot blue">●</span><div class="info"><div class="n">Domicile → Travail</div><div class="t">08:12 – 08:45 · 33 min · 8,4 km</div></div></div>
+          <div class="hist-row" data-route="Travail → Restaurant"><span class="hdot orange">●</span><div class="info"><div class="n">Travail → Restaurant</div><div class="t">12:05 – 12:32 · 27 min · 6,7 km</div></div></div>
+          <div class="hist-row" data-route="Restaurant → Hôtel"><span class="hdot green">●</span><div class="info"><div class="n">Restaurant → Hôtel</div><div class="t">18:10 – 18:45 · 35 min · 12,3 km</div></div></div>
+          <div class="hist-row" data-route="Hôtel → Domicile"><span class="hdot blue">●</span><div class="info"><div class="n">Hôtel → Domicile</div><div class="t">20:15 – 21:02 · 47 min · 14,8 km</div></div></div>
+        </div>
+        <div style="padding:12px 16px 16px">
+          <div id="histMap"></div>
+          <button class="btn ghost" style="width:100%;margin-top:10px" id="histBtn">Voir le trajet sur la carte</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-groupes" class="pageview" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div><h2 class="hello">🔗 Mes groupes</h2><p class="sub">Organisez vos partages par groupe.</p></div>
+        <button class="btn share" style="flex:none">+ Créer un groupe</button>
+      </div>
+      <div class="card">
+        <div class="list">
+          <div class="row-item"><div class="av" style="background:var(--violet)">👨‍👩‍👧</div><div class="info"><div class="n">Famille</div><div class="t">5 membres</div></div><span style="color:var(--sub)">›</span></div>
+          <div class="row-item"><div class="av" style="background:var(--blue)">🏢</div><div class="info"><div class="n">Entreprise</div><div class="t">3 membres</div></div><span style="color:var(--sub)">›</span></div>
+          <div class="row-item"><div class="av" style="background:var(--green)">👥</div><div class="info"><div class="n">Amis</div><div class="t">2 membres</div></div><span style="color:var(--sub)">›</span></div>
+          <div class="row-item"><div class="av" style="background:var(--orange)">🚚</div><div class="info"><div class="n">Équipe livraison</div><div class="t">4 membres</div></div><span style="color:var(--sub)">›</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3>Demandes reçues <span class="see" id="pendingCount"></span></h3>
+        <div class="list" id="pendingList"><div style="padding:16px;color:var(--sub);font-size:13px">Aucune demande en attente.</div></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3>Personnes autorisées <span class="see">Voir tout</span></h3>
+        <div class="list" id="sharesList"><div style="padding:16px;color:var(--sub);font-size:13px">Connecte-toi et configure l'API pour voir tes partages réels.</div></div>
+        <div style="padding:10px 16px 16px"><button class="btn ghost" style="width:100%" id="addPersonBtn">+ Ajouter une personne</button></div>
+      </div>
+    </div>
+
+    <div id="view-zones" class="pageview" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div><h2 class="hello">📐 Zones</h2><p class="sub">Recevez une alerte à l'entrée ou la sortie d'une zone définie.</p></div>
+        <button class="btn share" style="flex:none" id="newZoneBtn">+ Créer une zone</button>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="card"><div id="zoneMap"></div></div>
+        <div class="card">
+          <h3>Zones actives</h3>
+          <div class="list">
+            <div class="row-item"><div class="av" style="background:var(--blue)">🏠</div><div class="info"><div class="n">Maison</div><div class="t">Rayon : 500 m</div></div><span class="tag actif">Active</span></div>
+            <div class="row-item"><div class="av" style="background:var(--green)">🏫</div><div class="info"><div class="n">École</div><div class="t">Rayon : 300 m</div></div><span class="tag actif">Active</span></div>
+            <div class="row-item"><div class="av" style="background:var(--violet)">🏢</div><div class="info"><div class="n">Bureau</div><div class="t">Rayon : 500 m</div></div><span class="tag actif">Active</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-notifications" class="pageview" style="display:none">
+      <h2 class="hello">🔔 Notifications</h2>
+      <div class="grptabs" id="notifTabs">
+        <button class="gtab on" data-n="toutes">Toutes</button>
+        <button class="gtab" data-n="alertes">Alertes</button>
+        <button class="gtab" data-n="systeme">Système</button>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="list">
+          <div class="notif-row" data-n="alertes"><div class="nic red">🚨</div><div class="info"><div class="n">SOS déclenché</div><div class="t">12:45 · Jean</div></div></div>
+          <div class="notif-row" data-n="alertes"><div class="nic orange">📐</div><div class="info"><div class="n">Sortie de zone</div><div class="t">11:32 · École</div></div></div>
+          <div class="notif-row" data-n="systeme"><div class="nic green">✔️</div><div class="info"><div class="n">Arrivée à destination</div><div class="t">10:20 · Restaurant</div></div></div>
+          <div class="notif-row" data-n="systeme"><div class="nic blue">🔋</div><div class="info"><div class="n">Batterie faible</div><div class="t">08:12 · Voiture</div></div></div>
+          <div class="notif-row" data-n="systeme"><div class="nic blue">ℹ️</div><div class="info"><div class="n">Nouvelle autorisation</div><div class="t">Hier · Marie</div></div></div>
+          <div class="notif-row" data-n="systeme"><div class="nic blue">📍</div><div class="info"><div class="n">Mise à jour de position</div><div class="t">Hier · Papa</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="view-vehicules" class="pageview" style="display:none">
+      <h2 class="hello">🚗 GeoTrack Fleet</h2>
+      <p class="sub">Suivi en temps réel des véhicules et conducteurs de votre flotte.</p>
+      <div class="grid">
+        <div class="card"><div id="fleetMap"></div></div>
+        <div class="card">
+          <h3>Véhicules <span class="see">2 en ligne</span></h3>
+          <div class="list">
+            <div class="row-item"><div class="av" style="background:var(--violet)">🚗</div><div class="info"><div class="n">Véhicule Toyota — CI-4521</div><div class="t">Conducteur : Fadiga · 62 km/h</div></div><span class="tag actif">En ligne</span></div>
+            <div class="row-item"><div class="av" style="background:var(--orange)">🚚</div><div class="info"><div class="n">Camion 45</div><div class="t">Conducteur : Kader · dernière connexion 2 min</div></div><span class="tag actif">En ligne</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3>Tableau de bord flotte</h3>
+        <table class="ftable">
+          <thead><tr><th>Véhicule</th><th>Position</th><th>Statut</th><th>Dernière mise à jour</th></tr></thead>
+          <tbody>
+            <tr><td>Toyota — CI-4521</td><td>Le Plateau, Abidjan</td><td><span class="tag actif">En ligne</span></td><td>À l'instant</td></tr>
+            <tr><td>Camion 45</td><td>Yopougon, Abidjan</td><td><span class="tag actif">En ligne</span></td><td>2 min</td></tr>
+            <tr><td>Moto 12</td><td>Cocody, Abidjan</td><td><span class="tag stopped">Hors ligne</span></td><td>Hier, 19:40</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-livraisons" class="pageview" style="display:none">
+      <h2 class="hello">🚚 GeoTrack Delivery</h2>
+      <p class="sub">Le livreur partage sa position avec le client pendant la livraison.</p>
+      <div class="card" style="padding:18px">
+        <div class="delivery-head">
+          <div><div class="dl-n">Commande #2587</div><div class="dl-t">Livreur : Kader · Destination : Cocody, Riviera</div></div>
+          <span class="tag actif" id="dlStatusTag">🟡 En route</span>
+        </div>
+        <div class="dl-steps">
+          <div class="dl-step done"><div class="dot">✓</div>Récupérée</div>
+          <div class="dl-step done active"><div class="dot">✓</div>En route</div>
+          <div class="dl-step"><div class="dot"></div>Arrivée proche</div>
+          <div class="dl-step"><div class="dot"></div>Livrée</div>
+        </div>
+        <div class="dl-stats">
+          <div><b>3,2 km</b><span>Distance restante</span></div>
+          <div><b>9 min</b><span>ETA estimée</span></div>
+          <div><b>28 km/h</b><span>Vitesse</span></div>
+        </div>
+        <div id="deliveryMap"></div>
+        <button class="btn ghost" style="width:100%;margin-top:12px" id="podBtn">📷 Ajouter une preuve de livraison</button>
+      </div>
+    </div>
+
+    <div id="view-admin" class="pageview" style="display:none">
+      <h2 class="hello">🛠️ Administration GeoTrack</h2>
+      <p class="sub">Statistiques d'usage. Aucun accès arbitraire à la position privée d'un utilisateur.</p>
+      <div class="stats">
+        <div class="stat b"><div class="row"><div class="ic">👤</div></div><div class="label">Utilisateurs</div><div class="val">2 458</div><div class="note">+12%</div></div>
+        <div class="stat g"><div class="row"><div class="ic">🟢</div></div><div class="label">Partages actifs</div><div class="val">1 892</div><div class="note">+8%</div></div>
+        <div class="stat v"><div class="row"><div class="ic">📍</div></div><div class="label">Positions reçues</div><div class="val">48 521</div><div class="note">+15%</div></div>
+        <div class="stat o"><div class="row"><div class="ic">🚙</div></div><div class="label">Véhicules</div><div class="val">243</div><div class="note">+6%</div></div>
+      </div>
+      <div class="card" style="margin-top:4px">
+        <h3>Activité récente <span class="see">Voir tout</span></h3>
+        <div class="list">
+          <div class="row-item"><div class="av" style="background:var(--blue)">👤</div><div class="info"><div class="n">Nouvel utilisateur</div><div class="t">Jean Dupont · 10:34</div></div></div>
+          <div class="row-item"><div class="av" style="background:var(--violet)">🚗</div><div class="info"><div class="n">Véhicule en ligne</div><div class="t">Camion 45 · 10:12</div></div></div>
+          <div class="row-item"><div class="av" style="background:var(--green)">✔️</div><div class="info"><div class="n">Livraison terminée</div><div class="t">Commande #2587 · 09:48</div></div></div>
+          <div class="row-item"><div class="av" style="background:var(--red)">📐</div><div class="info"><div class="n">Alerte géofencing</div><div class="t">Sortie de zone · 09:32</div></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Demande de position modal -->
+<div class="overlay" id="reqOverlay">
+  <div class="modal">
+    <div class="pin">📍</div>
+    <h4>Demander sa position</h4>
+    <p id="reqName">Envoyer une demande de partage de position à ce contact.</p>
+    <div class="durations">
+      <label><input type="radio" name="reqdur" value="15" checked> Autoriser 15 min</label>
+      <label><input type="radio" name="reqdur" value="60"> Autoriser 1 h</label>
+      <label><input type="radio" name="reqdur" value="240"> Autoriser 4 h</label>
+      <label><input type="radio" name="reqdur" value="0"> Jusqu'à désactivation</label>
+    </div>
+    <button class="btn share" style="width:100%" id="sendReqBtn">Envoyer la demande</button>
+  </div>
+</div>
+
+<!-- Consent / duration modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="pin">📍</div>
+    <h4>Partager ma position</h4>
+    <p>Choisissez pendant combien de temps vous souhaitez partager votre position. Vous pouvez arrêter à tout moment.</p>
+    <div class="durations">
+      <label><input type="radio" name="dur" value="15" checked> 15 minutes</label>
+      <label><input type="radio" name="dur" value="30"> 30 minutes</label>
+      <label><input type="radio" name="dur" value="60"> 1 heure</label>
+      <label><input type="radio" name="dur" value="240"> 4 heures</label>
+      <label><input type="radio" name="dur" value="0"> Jusqu'à désactivation</label>
+    </div>
+    <div class="consent">🔒 Votre position ne sera visible que par les personnes que vous avez autorisées. L'app vous demandera l'accès GPS de votre navigateur.</div>
+    <button class="btn share" style="width:100%" id="confirmShare">Démarrer le partage</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="overlay show" id="authOverlay" style="z-index:4000">
+  <div class="modal" style="max-width:360px">
+    <div class="pin">🌍</div>
+    <h4 id="authTitle">Connexion à GeoTrack World</h4>
+    <p>Renseigne d'abord l'adresse de ton API (backend Render), puis connecte-toi.</p>
+    <div style="text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+      <label style="font-size:11.5px;font-weight:700;color:var(--sub)">Adresse de l'API</label>
+      <input id="apiBaseInput" placeholder="https://mon-service.onrender.com" style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+      <label id="nameLbl" style="font-size:11.5px;font-weight:700;color:var(--sub);display:none">Nom complet</label>
+      <input id="authName" placeholder="Fadiga Mamery" style="display:none;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+      <label style="font-size:11.5px;font-weight:700;color:var(--sub)">Email</label>
+      <input id="authEmail" type="email" placeholder="vous@exemple.com" style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+      <label style="font-size:11.5px;font-weight:700;color:var(--sub)">Mot de passe</label>
+      <input id="authPass" type="password" placeholder="8 caractères min." style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+    </div>
+    <button class="btn share" style="width:100%;margin-bottom:8px" id="authSubmit">Se connecter</button>
+    <button class="linkbtn" style="width:100%" id="authSwitch">Pas de compte ? Créer un compte</button>
+    <div id="authError" style="color:var(--red);font-size:12px;margin-top:8px"></div>
+  </div>
+</div>
+
+<script>
+const map = L.map('map',{zoomControl:false}).setView([5.3600,-4.0083],13);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+
+const userIcon = L.divIcon({html:'<div style="width:16px;height:16px;border-radius:50%;background:#1fae5b;border:3px solid #fff;box-shadow:0 0 0 2px #1fae5b"></div>',className:'',iconSize:[16,16]});
+let marker=null, accCircle=null, watchId=null, simInterval=null, timerInterval=null, shareEndsAt=null, sharing=false;
+let lat=5.3600, lng=-4.0083;
+
+function placeMarker(la,ln,acc,isReal){
+  if(marker) map.removeLayer(marker);
+  if(accCircle) map.removeLayer(accCircle);
+  marker = L.marker([la,ln],{icon:userIcon}).addTo(map);
+  accCircle = L.circle([la,ln],{radius:Math.max(acc,20),color:'#2f6fed',fillColor:'#2f6fed',fillOpacity:.12,weight:1}).addTo(map);
+  map.setView([la,ln], map.getZoom() < 13 ? 14 : map.getZoom());
+  document.getElementById('accVal').textContent = Math.round(acc);
+  document.getElementById('updVal').textContent = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const badge = document.getElementById('simBadge');
+  if(isReal){ badge.textContent='🟢 GPS RÉEL'; badge.classList.add('real'); }
+  else { badge.textContent='🟠 SIMULATION'; badge.classList.remove('real'); }
+}
+placeMarker(lat,lng,8,false);
+
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// ---- Connexion à l'API réelle ----
+let API_BASE = localStorage.getItem('gt_api_base') || (location.protocol.startsWith('http') ? location.origin : '');
+let AUTH_TOKEN = localStorage.getItem('gt_token') || '';
+let CURRENT_USER = JSON.parse(localStorage.getItem('gt_user') || 'null');
+let socket = null;
+
+function apiCfgLabel(){
+  document.getElementById('apiCfgLabel').textContent = API_BASE ? new URL(API_BASE).host : 'API non configurée';
+}
+apiCfgLabel();
+document.getElementById('apiBaseInput').value = API_BASE;
+
+async function api(path, opts={}){
+  if(!API_BASE) throw new Error("Configure d'abord l'adresse de l'API");
+  const res = await fetch(API_BASE.replace(/\/$/,'') + path, {
+    ...opts,
+    headers: {
+      'Content-Type':'application/json',
+      ...(AUTH_TOKEN ? {Authorization:'Bearer '+AUTH_TOKEN} : {}),
+      ...(opts.headers||{}),
+    },
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data;
+}
+
+function connectSocket(){
+  if(!API_BASE || !AUTH_TOKEN) return;
+  if(socket) socket.disconnect();
+  socket = io(API_BASE, {auth:{token:AUTH_TOKEN}});
+  socket.on('share:invite', ()=>{ toast('📩 Nouvelle demande de partage reçue'); loadShares(); });
+  socket.on('share:accepted', ()=>{ toast('✅ Partage accepté'); loadShares(); });
+  socket.on('share:declined', ()=>{ toast('Partage refusé'); loadShares(); });
+  socket.on('share:stopped', ()=>{ toast('🛑 Un partage a été arrêté'); loadShares(); });
+  socket.on('position:update', (p)=>{
+    if(watchingOwnerId && p.userId===watchingOwnerId){ lat=p.lat; lng=p.lng; placeMarker(lat,lng,p.accuracy||20,!p.isDemo); }
+  });
+}
+let watchingOwnerId = null;
+
+// ---- Écran de connexion ----
+let authMode = 'login';
+document.getElementById('authSwitch').addEventListener('click', ()=>{
+  authMode = authMode==='login' ? 'register' : 'login';
+  document.getElementById('authTitle').textContent = authMode==='login' ? 'Connexion à GeoTrack World' : 'Créer un compte GeoTrack';
+  document.getElementById('authSubmit').textContent = authMode==='login' ? 'Se connecter' : 'Créer mon compte';
+  document.getElementById('authSwitch').textContent = authMode==='login' ? 'Pas de compte ? Créer un compte' : 'Déjà un compte ? Se connecter';
+  document.getElementById('nameLbl').style.display = authMode==='register' ? 'block':'none';
+  document.getElementById('authName').style.display = authMode==='register' ? 'block':'none';
+});
+document.getElementById('authSubmit').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('authError'); errEl.textContent='';
+  API_BASE = document.getElementById('apiBaseInput').value.trim();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPass').value;
+  const name = document.getElementById('authName').value.trim();
+  if(!API_BASE || !email || !password){ errEl.textContent='Adresse API, email et mot de passe requis.'; return; }
+  localStorage.setItem('gt_api_base', API_BASE); apiCfgLabel();
+  try{
+    const body = authMode==='login' ? {email,password} : {name,email,password};
+    const data = await api('/api/auth/'+authMode, {method:'POST', body:JSON.stringify(body)});
+    AUTH_TOKEN = data.token; CURRENT_USER = data.user;
+    localStorage.setItem('gt_token', AUTH_TOKEN);
+    localStorage.setItem('gt_user', JSON.stringify(CURRENT_USER));
+    document.getElementById('authOverlay').classList.remove('show');
+    document.querySelector('.sidebar-foot .name').textContent = CURRENT_USER.name;
+    document.querySelector('h2.hello').textContent = `Bonjour ${CURRENT_USER.name} 👋`;
+    connectSocket();
+    toast('Connecté à GeoTrack World');
+    setTimeout(loadShares, 300);
+  } catch(err){ errEl.textContent = err.message; }
+});
+document.getElementById('apiCfgBtn').addEventListener('click', ()=>{
+  const v = prompt("Adresse de l'API (ex: https://mon-service.onrender.com)", API_BASE);
+  if(v!==null){ API_BASE = v.trim(); localStorage.setItem('gt_api_base', API_BASE); apiCfgLabel(); }
+});
+if(AUTH_TOKEN && CURRENT_USER){
+  document.getElementById('authOverlay').classList.remove('show');
+  document.querySelector('.sidebar-foot .name').textContent = CURRENT_USER.name;
+  document.querySelector('h2.hello').textContent = `Bonjour ${CURRENT_USER.name} 👋`;
+  connectSocket();
+  setTimeout(loadShares, 300);
+}
+
+function startSimulatedWalk(){
+  simInterval = setInterval(()=>{
+    lat += (Math.random()-0.5)*0.0015;
+    lng += (Math.random()-0.5)*0.0015;
+    placeMarker(lat,lng, 15+Math.random()*20, false);
+    if(API_BASE && AUTH_TOKEN){
+      api('/api/positions',{method:'POST', body:JSON.stringify({lat, lng, accuracy:20, isDemo:true})}).catch(()=>{});
+    }
+  },4000);
+}
+
+function updateShareUI(on, endsLabel){
+  sharing = on;
+  document.getElementById('shareBtn').disabled = on;
+  document.getElementById('stopBtn').disabled = !on;
+  document.getElementById('statShare').textContent = on ? 'Partagée' : 'Non partagée';
+  document.getElementById('statShareNote').textContent = on ? endsLabel : 'Activez le partage';
+}
+
+document.getElementById('shareBtn').addEventListener('click', ()=>{
+  document.getElementById('overlay').classList.add('show');
+});
+document.getElementById('overlay').addEventListener('click', (e)=>{
+  if(e.target.id==='overlay') document.getElementById('overlay').classList.remove('show');
+});
+
+document.getElementById('confirmShare').addEventListener('click', ()=>{
+  const mins = parseInt(document.querySelector('input[name="dur"]:checked').value,10);
+  document.getElementById('overlay').classList.remove('show');
+
+  const endsLabel = mins===0 ? "Jusqu'à désactivation" : `Jusqu'à ${new Date(Date.now()+mins*60000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+  updateShareUI(true, endsLabel);
+  toast('Partage de position démarré');
+
+  if(navigator.geolocation){
+    watchId = navigator.geolocation.watchPosition(
+      pos=>{
+        lat=pos.coords.latitude; lng=pos.coords.longitude;
+        placeMarker(lat,lng,pos.coords.accuracy||20,true);
+        if(API_BASE && AUTH_TOKEN){
+          api('/api/positions',{method:'POST', body:JSON.stringify({
+            lat, lng, accuracy:pos.coords.accuracy, speed:pos.coords.speed, heading:pos.coords.heading, isDemo:false
+          })}).catch(e=>toast('Erreur envoi position : '+e.message));
+        }
+      },
+      ()=>{ toast("Accès GPS refusé — passage en mode démonstration"); startSimulatedWalk(); },
+      {enableHighAccuracy:true, maximumAge:10000, timeout:8000}
+    );
+  } else {
+    startSimulatedWalk();
+  }
+
+  if(mins>0){
+    shareEndsAt = Date.now() + mins*60000;
+    timerInterval = setInterval(()=>{
+      if(Date.now() >= shareEndsAt){ stopSharing(true); }
+    },1000);
+  }
+});
+
+function stopSharing(expired){
+  if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+  if(simInterval){ clearInterval(simInterval); simInterval=null; }
+  if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
+  updateShareUI(false,'');
+  toast(expired ? 'Partage terminé (durée expirée)' : 'Partage arrêté');
+}
+document.getElementById('stopBtn').addEventListener('click', ()=>stopSharing(false));
+
+document.getElementById('gmapsBtn').addEventListener('click', ()=>{
+  window.open(`https://www.google.com/maps?q=${lat},${lng}`,'_blank');
+});
+
+document.getElementById('sosNav').addEventListener('click', ()=>{
+  if(confirm("Envoyer votre position actuelle à vos contacts d'urgence ?")) toast('🚨 Alerte SOS envoyée à vos contacts');
+});
+
+// theme toggle
+const lightBtn=document.getElementById('themeLight'), darkBtn=document.getElementById('themeDark');
+function setTheme(dark){
+  document.documentElement.setAttribute('data-theme', dark?'dark':'light');
+  lightBtn.classList.toggle('on', !dark);
+  darkBtn.classList.toggle('on', dark);
+}
+lightBtn.addEventListener('click',()=>setTheme(false));
+darkBtn.addEventListener('click',()=>setTheme(true));
+
+// generic view switcher (single-page prototype)
+document.querySelectorAll('.navitem').forEach(btn=>{
+  if(btn.id==='sosNav') return;
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.navitem').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view || 'dashboard';
+    document.querySelectorAll('.pageview').forEach(v=>v.style.display='none');
+    const target = document.getElementById('view-'+view) || document.getElementById('view-dashboard');
+    target.style.display='block';
+    if(view==='historique' && !histMapInit) initHistMap();
+    if(view==='zones' && !zoneMapInit) initZoneMap();
+    if(view==='vehicules' && !fleetMapInit) initFleetMap();
+    if(view==='livraisons' && !dlMapInit) initDeliveryMap();
+    if(view==='groupes') loadShares();
+  });
+});
+
+// satellite/plan cosmetic toggle (no extra tile requests)
+document.getElementById('satBtn').addEventListener('click',(e)=>{
+  document.getElementById('satBtn').classList.add('on');
+  document.getElementById('planBtn').classList.remove('on');
+  document.getElementById('map').style.filter='saturate(1.3) contrast(1.05)';
+});
+document.getElementById('planBtn').addEventListener('click',()=>{
+  document.getElementById('planBtn').classList.add('on');
+  document.getElementById('satBtn').classList.remove('on');
+  document.getElementById('map').style.filter='none';
+});
+
+// ---- Historique mini-carte ----
+let histMapInit=false;
+function initHistMap(){
+  histMapInit=true;
+  const hm = L.map('histMap',{zoomControl:false,dragging:false,scrollWheelZoom:false}).setView([5.362,-4.010],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(hm);
+  const route=[[5.355,-4.020],[5.360,-4.015],[5.365,-4.008],[5.368,-4.002]];
+  L.polyline(route,{color:'#2f6fed',weight:4}).addTo(hm);
+  L.circleMarker(route[0],{radius:6,color:'#1fae5b',fillColor:'#1fae5b',fillOpacity:1}).addTo(hm);
+  L.circleMarker(route[route.length-1],{radius:6,color:'#e5484d',fillColor:'#e5484d',fillOpacity:1}).addTo(hm);
+  setTimeout(()=>hm.invalidateSize(),150);
+}
+document.getElementById('histBtn').addEventListener('click',()=>toast('Trajet affiché sur la carte'));
+document.querySelectorAll('.hist-row').forEach(r=>r.addEventListener('click',()=>toast(`Trajet : ${r.dataset.route}`)));
+
+// ---- Zones (géofencing) mini-carte ----
+let zoneMapInit=false;
+function initZoneMap(){
+  zoneMapInit=true;
+  const zm = L.map('zoneMap',{zoomControl:false,dragging:false,scrollWheelZoom:false}).setView([5.360,-4.0083],15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(zm);
+  L.circle([5.360,-4.0083],{radius:500,color:'#2f6fed',fillColor:'#2f6fed',fillOpacity:.15}).addTo(zm);
+  L.marker([5.360,-4.0083]).addTo(zm).bindTooltip('Maison · 500 m',{permanent:true,direction:'top'});
+  setTimeout(()=>zm.invalidateSize(),150);
+}
+// ---- Flotte (véhicules) ----
+let fleetMapInit=false;
+function initFleetMap(){
+  fleetMapInit=true;
+  const fm = L.map('fleetMap',{zoomControl:false,dragging:false,scrollWheelZoom:false}).setView([5.345,-4.01],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(fm);
+  L.marker([5.360,-4.008]).addTo(fm).bindTooltip('Toyota · 62 km/h',{permanent:true,direction:'top'});
+  L.marker([5.320,-4.045]).addTo(fm).bindTooltip('Camion 45',{permanent:true,direction:'top'});
+  setTimeout(()=>fm.invalidateSize(),150);
+}
+
+// ---- Livraisons ----
+let dlMapInit=false;
+function initDeliveryMap(){
+  dlMapInit=true;
+  const dm = L.map('deliveryMap',{zoomControl:false,dragging:false,scrollWheelZoom:false}).setView([5.370,-3.985],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dm);
+  L.marker([5.365,-3.995]).addTo(dm).bindTooltip('Livreur',{permanent:true,direction:'top'});
+  L.marker([5.378,-3.975]).addTo(dm).bindTooltip('Destination',{permanent:true,direction:'top'});
+  L.polyline([[5.365,-3.995],[5.378,-3.975]],{color:'#f59f1a',weight:4,dashArray:'6,6'}).addTo(dm);
+  setTimeout(()=>dm.invalidateSize(),150);
+}
+document.getElementById('podBtn').addEventListener('click',()=>toast('Preuve de livraison enregistrée'));
+document.getElementById('newZoneBtn').addEventListener('click',()=>toast('Définissez un centre et un rayon pour la nouvelle zone'));
+document.getElementById('addPersonBtn').addEventListener('click', async ()=>{
+  if(!AUTH_TOKEN) return toast('Connecte-toi d\'abord');
+  const identifier = prompt("Email ou téléphone de la personne à autoriser :");
+  if(!identifier) return;
+  const durationMinutes = parseInt(prompt("Durée en minutes (0 = jusqu'à désactivation) :", "60") || "0", 10);
+  try{
+    await api('/api/shares', {method:'POST', body:JSON.stringify({identifier, durationMinutes})});
+    toast('Invitation envoyée — le partage démarre après acceptation');
+    loadShares();
+  } catch(err){ toast('Erreur : '+err.message); }
+});
+
+async function loadShares(){
+  if(!AUTH_TOKEN || !API_BASE) return;
+  try{
+    const mine = await api('/api/shares/mine');
+    const list = document.getElementById('sharesList');
+    const rows = mine.shares.filter(s=>s.status==='active'||s.status==='pending');
+    list.innerHTML = rows.length ? rows.map(s=>`
+      <div class="row-item"><div class="av">${(s.viewer_name||'?')[0].toUpperCase()}</div>
+      <div class="info"><div class="n">${s.viewer_name}</div><div class="t">${s.status==='active' ? (s.expires_at ? 'Jusqu\'à '+new Date(s.expires_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : 'Jusqu\'à désactivation') : 'En attente d\'acceptation'}</div></div>
+      <button class="linkbtn" data-stop="${s.id}">${s.status==='active'?'Arrêter':'Annuler'}</button></div>`).join('')
+      : '<div style="padding:16px;color:var(--sub);font-size:13px">Aucun partage actif.</div>';
+    list.querySelectorAll('[data-stop]').forEach(b=>b.addEventListener('click', async ()=>{
+      try{ await api(`/api/shares/${b.dataset.stop}/stop`,{method:'POST'}); toast('Partage arrêté'); loadShares(); }
+      catch(err){ toast('Erreur : '+err.message); }
+    }));
+
+    const sharedWithMe = await api('/api/shares/shared-with-me');
+    const pending = sharedWithMe.shares.filter(s=>s.status==='pending');
+    document.getElementById('pendingCount').textContent = pending.length ? pending.length+' en attente' : '';
+    const pl = document.getElementById('pendingList');
+    pl.innerHTML = pending.length ? pending.map(s=>`
+      <div class="row-item"><div class="av">${(s.owner_name||'?')[0].toUpperCase()}</div>
+      <div class="info"><div class="n">${s.owner_name} souhaite partager sa position</div><div class="t">avec vous</div></div>
+      <button class="linkbtn" data-accept="${s.id}" style="border-color:var(--green);color:#0e6b3a">Accepter</button>
+      <button class="linkbtn" data-decline="${s.id}" style="margin-left:6px">Refuser</button></div>`).join('')
+      : '<div style="padding:16px;color:var(--sub);font-size:13px">Aucune demande en attente.</div>';
+    pl.querySelectorAll('[data-accept]').forEach(b=>b.addEventListener('click', async ()=>{
+      await api(`/api/shares/${b.dataset.accept}/accept`,{method:'POST'}); toast('Partage accepté'); loadShares();
+    }));
+    pl.querySelectorAll('[data-decline]').forEach(b=>b.addEventListener('click', async ()=>{
+      await api(`/api/shares/${b.dataset.decline}/decline`,{method:'POST'}); toast('Demande refusée'); loadShares();
+    }));
+  } catch(err){ /* API non configurée ou hors ligne : on garde l'état par défaut */ }
+}
+
+// ---- Notifications filter ----
+document.getElementById('notifTabs').addEventListener('click',(e)=>{
+  const btn=e.target.closest('.gtab'); if(!btn) return;
+  document.querySelectorAll('#notifTabs .gtab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const f=btn.dataset.n;
+  document.querySelectorAll('.notif-row').forEach(r=>{
+    r.style.display = (f==='toutes' || r.dataset.n===f) ? 'flex' : 'none';
+  });
+});
+
+// ---- Répertoire ----
+// Ces contacts et statuts sont des données de démonstration : aucune position n'est réelle
+// tant que la personne n'a pas explicitement accepté le partage (règle du module).
+let contacts = [
+  {name:'Marie Kouassi', phone:'+225 07 XX XX 12', groups:['famille','favoris'], status:'on', meta:'En ligne · mis à jour il y a 5 s'},
+  {name:'Jean Kouassi', phone:'+225 05 XX XX 44', groups:['amis'], status:'pending', meta:'Demande en attente'},
+  {name:'Paul N\'Guessan', phone:'+225 01 XX XX 90', groups:['travail'], status:'none', meta:'GeoTrack non installé'},
+  {name:'Aïcha Traoré', phone:'+225 07 XX XX 58', groups:['travail','favoris'], status:'stopped', meta:'Partage arrêté'},
+];
+const statusCfg = {
+  on:{cls:'on', label:'🟢 Position partagée'},
+  pending:{cls:'pending', label:'🟡 Demande en attente'},
+  none:{cls:'off', label:'⚪ Utilisateur non inscrit'},
+  stopped:{cls:'stopped', label:'🔴 Partage arrêté'},
+};
+let activeGroup='tous', reqTarget=null;
+
+function initials(n){ return n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+
+function renderContacts(){
+  const list = document.getElementById('repList');
+  const filtered = contacts.filter(c => activeGroup==='tous' || c.groups.includes(activeGroup));
+  document.getElementById('repCount').textContent = filtered.length + ' contact' + (filtered.length>1?'s':'');
+  list.innerHTML = filtered.map((c,i)=>{
+    const s = statusCfg[c.status];
+    let action = '';
+    if(c.status==='on') action = `<button class="linkbtn" data-act="view" data-i="${contacts.indexOf(c)}">📍 Voir</button>`;
+    else if(c.status==='pending') action = `<button class="linkbtn" disabled>En attente</button>`;
+    else if(c.status==='none') action = `<button class="linkbtn" data-act="invite" data-i="${contacts.indexOf(c)}">Inviter</button>`;
+    else action = `<button class="linkbtn" data-act="request" data-i="${contacts.indexOf(c)}">Demander</button>`;
+    const favBtn = c.groups.includes('favoris') ? '⭐' : '';
+    return `<div class="rep-row">
+      <div class="av">${initials(c.name)}</div>
+      <div class="info">
+        <div class="n">${c.name} ${favBtn}</div>
+        <div class="phone">${c.phone}</div>
+        <div class="rc-status ${s.cls}">${s.label} <span style="color:var(--sub);font-weight:500">· ${c.meta}</span></div>
+      </div>
+      <div class="actions2">${action}</div>
+    </div>`;
+  }).join('') || '<div style="padding:16px;color:var(--sub);font-size:13px">Aucun contact dans ce groupe.</div>';
+}
+renderContacts();
+
+document.getElementById('grpTabs').addEventListener('click',(e)=>{
+  const btn = e.target.closest('.gtab'); if(!btn) return;
+  document.querySelectorAll('.gtab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  activeGroup = btn.dataset.g;
+  renderContacts();
+});
+
+document.getElementById('repList').addEventListener('click',(e)=>{
+  const btn = e.target.closest('[data-act]'); if(!btn) return;
+  const c = contacts[parseInt(btn.dataset.i,10)];
+  if(btn.dataset.act==='view'){
+    toast(`📍 Position de ${c.name} affichée sur la carte`);
+  } else if(btn.dataset.act==='invite'){
+    toast(`Invitation envoyée à ${c.name}`);
+  } else if(btn.dataset.act==='request'){
+    reqTarget = c;
+    document.getElementById('reqName').textContent = `Demander à ${c.name} de partager sa position.`;
+    document.getElementById('reqOverlay').classList.add('show');
+  }
+});
+
+document.getElementById('reqOverlay').addEventListener('click',(e)=>{
+  if(e.target.id==='reqOverlay') document.getElementById('reqOverlay').classList.remove('show');
+});
+document.getElementById('sendReqBtn').addEventListener('click',()=>{
+  document.getElementById('reqOverlay').classList.remove('show');
+  if(reqTarget){ reqTarget.status='pending'; reqTarget.meta='Demande en attente'; renderContacts(); }
+  toast(`Demande envoyée${reqTarget ? ' à '+reqTarget.name : ''}. Le partage ne démarre qu'après son accord.`);
+});
+
+document.getElementById('syncBtn').addEventListener('click',()=>{
+  toast('🔒 Autorisation d\'accès aux contacts demandée — seuls les numéros correspondants sont vérifiés');
+});
+
+document.querySelectorAll('[data-revoke]').forEach(b=>{
+  b.addEventListener('click',()=>toast(`Accès révoqué pour ${b.dataset.revoke}`));
+});
+</script>
+</body>
+</html>
