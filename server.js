@@ -11,6 +11,8 @@ const authRoutes = require('./src/routes/auth');
 const positionRoutes = require('./src/routes/positions');
 const shareRoutes = require('./src/routes/shares');
 const contactRoutes = require('./src/routes/contacts');
+const messageRoutes = require('./src/routes/messages');
+const geofenceRoutes = require('./src/routes/geofences');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,6 +36,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/shares', shareRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api', messageRoutes);
+app.use('/api/geofences', geofenceRoutes);
 
 // Erreurs non gérées -> réponse JSON propre plutôt qu'un plantage silencieux
 app.use((err, _req, res, _next) => {

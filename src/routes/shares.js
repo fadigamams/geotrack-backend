@@ -20,6 +20,12 @@ router.post('/', requireAuth, async (req, res) => {
   if (!viewer) return res.status(404).json({ error: "Cette personne n'a pas de compte GeoTrack" });
   if (viewer.id === req.userId) return res.status(400).json({ error: 'Impossible de partager avec vous-même' });
 
+  const blocked = await db.query(
+    'SELECT 1 FROM blocks WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1) LIMIT 1',
+    [req.userId, viewer.id]
+  );
+  if (blocked.rows.length) return res.status(403).json({ error: 'Invitation impossible (blocage actif)' });
+
   const result = await db.query(
     `INSERT INTO shares (owner_id, viewer_id, status, duration_minutes)
      VALUES ($1,$2,'pending',$3) RETURNING *`,
