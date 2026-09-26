@@ -11,6 +11,9 @@ const authRoutes = require('./src/routes/auth');
 const positionRoutes = require('./src/routes/positions');
 const shareRoutes = require('./src/routes/shares');
 const contactRoutes = require('./src/routes/contacts');
+const companiesRoutes = require('./src/routes/companies');
+const vehiclesRoutes = require('./src/routes/vehicles');
+const adminRoutes = require('./src/routes/admin');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,6 +37,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/shares', shareRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/companies', companiesRoutes);
+app.use('/api/companies/:companyId/vehicles', vehiclesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Erreurs non gérées -> réponse JSON propre plutôt qu'un plantage silencieux
 app.use((err, _req, res, _next) => {
