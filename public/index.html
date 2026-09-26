@@ -602,6 +602,31 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       </div>
     </div>
 
+
+    <div id="view-entreprise" class="pageview" style="display:none">
+      <div id="entNoCompany" style="display:none">
+        <h2 class="hello">🏢 Entreprise</h2>
+        <p class="sub">Vous n'avez pas encore d'entreprise.</p>
+        <div class="card">
+          <input type="text" id="entNewName" placeholder="Nom de l'entreprise" style="width:100%;margin-bottom:8px">
+          <input type="text" id="entNewSector" placeholder="Secteur (optionnel)" style="width:100%;margin-bottom:8px">
+          <button class="btn share" id="entCreateBtn" style="width:100%">+ Creer mon entreprise</button>
+        </div>
+      </div>
+      <div id="entHasCompany" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div><h2 class="hello" id="entName">🏢 Entreprise</h2><p class="sub" id="entLicenseInfo"></p></div>
+        </div>
+        <div class="card">
+          <h3>Membres <span class="see" id="entInviteLink" style="cursor:pointer">+ Inviter</span></h3>
+          <div class="list" id="entMembersList"><div style="padding:16px;color:var(--sub);font-size:13px">Chargement...</div></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Vehicules <span class="see" id="entAddVehicleLink" style="cursor:pointer">+ Ajouter</span></h3>
+          <div class="list" id="entVehiclesList"><div style="padding:16px;color:var(--sub);font-size:13px">Chargement...</div></div>
+        </div>
+      </div>
+    </div>
     <div id="view-admin" class="pageview" style="display:none">
       <h2 class="hello">🛠️ Administration YAM</h2>
       <p class="sub">Identité de marque : YAM — You and Me · v1.0</p>
@@ -1066,6 +1091,7 @@ document.querySelectorAll('.navitem').forEach(btn=>{
     if(view==='vehicules' && !fleetMapInit) initFleetMap();
     if(view==='livraisons' && !dlMapInit) initDeliveryMap();
     if(view==='groupes') loadGroups();
+    if(view==='entreprise') loadEntreprise();
     if(view==='messages') loadConversations();
     if(view==='zones') loadGeofences();
     if(view==='dashboard'){ loadShares(); loadDashboardTrips(); loadConversations(); }
@@ -1339,6 +1365,99 @@ document.getElementById('createGroupBtn').addEventListener('click', async ()=>{
   }
 });
 
+
+// ---- Entreprise ----
+let CURRENT_COMPANY = null;
+async function loadEntreprise(){
+  const noComp = document.getElementById('entNoCompany');
+  const hasComp = document.getElementById('entHasCompany');
+  if(!noComp || !hasComp) return;
+  try{
+    const list = await api('/api/companies/me');
+    if(!list.length){
+      noComp.style.display='block'; hasComp.style.display='none';
+      return;
+    }
+    CURRENT_COMPANY = list[0];
+    noComp.style.display='none'; hasComp.style.display='block';
+    const detail = await api('/api/companies/'+CURRENT_COMPANY.id);
+    document.getElementById('entName').textContent = '🏢 '+detail.name;
+    const lic = detail.license;
+    document.getElementById('entLicenseInfo').textContent = lic ? ('Plan '+lic.plan+' - '+lic.max_vehicles+' vehicules max - '+lic.status) : 'Aucune licence active';
+    const members = await api('/api/companies/'+CURRENT_COMPANY.id+'/members');
+    const mList = document.getElementById('entMembersList');
+    if(!members.length){
+      mList.innerHTML = '<div style="padding:16px;color:var(--sub);font-size:13px">Aucun membre.</div>';
+    } else {
+      mList.innerHTML = members.map(m => `
+        <div class="list-item">
+          <div class="li-icon">👤</div>
+          <div class="li-body">
+            <div class="li-title">${m.name}</div>
+            <div class="li-sub">${m.email} - ${m.role}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    const vehicles = await api('/api/companies/'+CURRENT_COMPANY.id+'/vehicles');
+    const vList = document.getElementById('entVehiclesList');
+    if(!vehicles.length){
+      vList.innerHTML = '<div style="padding:16px;color:var(--sub);font-size:13px">Aucun vehicule.</div>';
+    } else {
+      vList.innerHTML = vehicles.map(v => `
+        <div class="list-item">
+          <div class="li-icon">🚗</div>
+          <div class="li-body">
+            <div class="li-title">${v.plate}</div>
+            <div class="li-sub">${v.brand||''} ${v.model||''} - ${v.active?'Actif':'Inactif'}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }catch(err){
+    toast('Erreur chargement entreprise');
+  }
+}
+
+document.getElementById('entCreateBtn')?.addEventListener('click', async ()=>{
+  const name = document.getElementById('entNewName').value.trim();
+  const sector = document.getElementById('entNewSector').value.trim();
+  if(!name) return toast('Le nom est requis');
+  try{
+    await api('/api/companies', {method:'POST', body: JSON.stringify({name, sector: sector||null})});
+    toast('Entreprise creee');
+    loadEntreprise();
+  }catch(err){
+    toast('Erreur lors de la creation');
+  }
+});
+
+document.getElementById('entInviteLink')?.addEventListener('click', async ()=>{
+  if(!CURRENT_COMPANY) return;
+  const email = prompt('Email de la personne a inviter (doit avoir un compte YAM) :');
+  if(!email || !email.trim()) return;
+  try{
+    await api('/api/companies/'+CURRENT_COMPANY.id+'/members', {method:'POST', body: JSON.stringify({email: email.trim()})});
+    toast('Membre ajoute');
+    loadEntreprise();
+  }catch(err){
+    toast('Erreur : email introuvable ou deja membre');
+  }
+});
+
+document.getElementById('entAddVehicleLink')?.addEventListener('click', async ()=>{
+  if(!CURRENT_COMPANY) return;
+  const plate = prompt('Plaque d\'immatriculation :');
+  if(!plate || !plate.trim()) return;
+  const brand = prompt('Marque (optionnel) :') || '';
+  try{
+    await api('/api/companies/'+CURRENT_COMPANY.id+'/vehicles', {method:'POST', body: JSON.stringify({plate: plate.trim(), brand})});
+    toast('Vehicule ajoute');
+    loadEntreprise();
+  }catch(err){
+    toast('Erreur lors de l\'ajout du vehicule');
+  }
+});
 // ---- Notifications filter ----
 document.getElementById('notifTabs').addEventListener('click',(e)=>{
   const btn=e.target.closest('.gtab'); if(!btn) return;
