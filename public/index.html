@@ -363,7 +363,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
     <div class="topbar">
       <div class="pill" id="shareAppBtn" style="cursor:pointer">📤 Partager</div>
       <div class="pill" id="apiCfgBtn" style="cursor:pointer" title="Adresse du serveur API">⚙️ <span id="apiCfgLabel">API non configurée</span></div>
-      <div class="pill">🇫🇷 FR</div>
+      <div class="pill">🇨🇮 CI</div>
       <div class="pill">🔔<span id="notifCount">3</span></div>
       <div class="toggle">
         <button id="themeLight" class="on">Mode clair</button>
@@ -479,16 +479,10 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
     <div id="view-groupes" class="pageview" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div><h2 class="hello">🔗 Mes groupes</h2><p class="sub">Organisez vos partages par groupe.</p></div>
-        <button class="btn share" style="flex:none">+ Créer un groupe</button>
+        <button id="createGroupBtn" class="btn share" style="flex:none">+ Créer un groupe</button>
       </div>
       <div class="card">
-        <div class="list">
-          <div class="row-item"><div class="av" style="background:var(--violet)">👨‍👩‍👧</div><div class="info"><div class="n">Famille</div><div class="t">5 membres</div></div><span style="color:var(--sub)">›</span></div>
-          <div class="row-item"><div class="av" style="background:var(--blue)">🏢</div><div class="info"><div class="n">Entreprise</div><div class="t">3 membres</div></div><span style="color:var(--sub)">›</span></div>
-          <div class="row-item"><div class="av" style="background:var(--green)">👥</div><div class="info"><div class="n">Amis</div><div class="t">2 membres</div></div><span style="color:var(--sub)">›</span></div>
-          <div class="row-item"><div class="av" style="background:var(--orange)">🚚</div><div class="info"><div class="n">Équipe livraison</div><div class="t">4 membres</div></div><span style="color:var(--sub)">›</span></div>
-        </div>
-      </div>
+    <div class="list" id="groupsList"><div style="padding:16px;color:var(--sub);font-size:13px">Chargement...</div></div>
       <div class="card" style="margin-top:16px">
         <h3>Demandes reçues <span class="see" id="pendingCount"></span></h3>
         <div class="list" id="pendingList"><div style="padding:16px;color:var(--sub);font-size:13px">Aucune demande en attente.</div></div>
@@ -1071,7 +1065,7 @@ document.querySelectorAll('.navitem').forEach(btn=>{
     if(view==='zones' && !zoneMapInit) initZoneMap();
     if(view==='vehicules' && !fleetMapInit) initFleetMap();
     if(view==='livraisons' && !dlMapInit) initDeliveryMap();
-    if(view==='groupes') loadShares();
+    if(view==='groupes') loadGroups();
     if(view==='messages') loadConversations();
     if(view==='zones') loadGeofences();
     if(view==='dashboard'){ loadShares(); loadDashboardTrips(); loadConversations(); }
@@ -1309,6 +1303,41 @@ async function loadShares(){
     }));
   } catch(err){ /* API non configurée ou hors ligne : on garde l'état par défaut */ }
 }
+
+// ---- Groupes ----
+async function loadGroups(){
+  const list = document.getElementById('groupsList');
+  if(!list) return;
+  try{
+    const groups = await api('/api/groups');
+    if(!groups.length){
+      list.innerHTML = '<div class="muted" style="padding:12px">Aucun groupe pour le moment.</div>';
+      return;
+    }
+    list.innerHTML = groups.map(g => `
+      <div class="list-item">
+        <div class="li-icon">👥</div>
+        <div class="li-body">
+          <div class="li-title">${g.name}</div>
+          <div class="li-sub">${g.member_count||1} membre(s)</div>
+        </div>
+      </div>
+    `).join('');
+  }catch(err){
+    list.innerHTML = '<div class="muted" style="padding:12px">Erreur de chargement.</div>';
+  }
+}
+document.getElementById('createGroupBtn').addEventListener('click', async ()=>{
+  const name = prompt('Nom du groupe :');
+  if(!name || !name.trim()) return;
+  try{
+    await api('/api/groups', {method:'POST', body: JSON.stringify({name: name.trim()})});
+    toast('Groupe créé');
+    loadGroups();
+  }catch(err){
+    toast('Erreur lors de la création');
+  }
+});
 
 // ---- Notifications filter ----
 document.getElementById('notifTabs').addEventListener('click',(e)=>{
