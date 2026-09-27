@@ -1335,7 +1335,7 @@ async function loadGroups(){
   const list = document.getElementById('groupsList');
   if(!list) return;
   try{
-    const groups = await api('/api/groups');
+    const groups = await api('/api/groups'); alert(JSON.stringify(groups));
     if(!groups.length){
       list.innerHTML = '<div class="muted" style="padding:12px">Aucun groupe pour le moment.</div>';
       return;
