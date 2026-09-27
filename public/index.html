@@ -261,6 +261,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 .bubble .time{display:block; font-size:10px; opacity:.7; margin-top:3px}
 .chat-input{display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line)}
 .chat-input input{flex:1; border:1px solid var(--line); border-radius:20px; padding:10px 14px; font-size:13px; background:var(--card); color:var(--ink)}
+.menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:4600;width:40px;height:40px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:20px;align-items:center;justify-content:center;cursor:pointer}
 @media (max-width:820px){ .msg-layout{grid-template-columns:1fr; height:auto} .msg-chat-card{height:420px} }
 
 .tag.stopped{background:var(--red-bg);color:#b3242a}
@@ -306,9 +307,12 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 }
 .toast.show{opacity:1}
 
+.menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:4600;width:40px;height:40px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:20px;align-items:center;justify-content:center;cursor:pointer}
 @media (max-width:820px){
   .app{grid-template-columns:1fr}
   .sidebar{display:none}
+  .sidebar.open{display:flex;position:fixed;inset:0;z-index:4500;width:100%;height:100%;overflow-y:auto}
+  .menu-toggle{display:flex}
   .stats{grid-template-columns:repeat(2,1fr)}
   .grid{grid-template-columns:1fr}
   main{padding:14px}
@@ -316,6 +320,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 </style>
 </head>
 <body>
+<button class="menu-toggle" id="menuToggleBtn">☰</button>
 <div id="splashScreen">
   <div class="splash-glow"></div>
   <div class="splash-cross">
@@ -929,6 +934,12 @@ document.getElementById('authSubmit').addEventListener('click', async ()=>{
     document.querySelector('.sidebar-foot .name').textContent = CURRENT_USER.name;
     document.querySelector('h2.hello').textContent = `Bonjour ${CURRENT_USER.name} 👋`;
   if(CURRENT_USER.isSuperAdmin){ const san=document.getElementById('superAdminNav'); if(san) san.style.display='flex'; }
+  document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
+  document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
+  document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
+  document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
+  document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
+  document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
     connectSocket();
     toast('Connecté à YAM');
     setTimeout(()=>{ loadShares(); loadDashboardTrips(); loadConversations(); }, 300);
