@@ -627,6 +627,11 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
         </div>
       </div>
     </div>
+    <div id="view-superadmin" class="pageview" style="display:none">
+      <h2 class="hello">👑 Super Admin YAM</h2>
+      <p class="sub">Liste des entreprises et gestion des licences.</p>
+      <div class="list" id="saCompaniesList" style="padding:16px;color:var(--sub);font-size:13px">Chargement...</div>
+    </div>
     <div id="view-admin" class="pageview" style="display:none">
       <h2 class="hello">🛠️ Administration YAM</h2>
       <p class="sub">Identité de marque : YAM — You and Me · v1.0</p>
@@ -923,6 +928,7 @@ document.getElementById('authSubmit').addEventListener('click', async ()=>{
     document.getElementById('authOverlay').classList.remove('show');
     document.querySelector('.sidebar-foot .name').textContent = CURRENT_USER.name;
     document.querySelector('h2.hello').textContent = `Bonjour ${CURRENT_USER.name} 👋`;
+  if(CURRENT_USER.isSuperAdmin){ const san=document.getElementById('superAdminNav'); if(san) san.style.display='flex'; }
     connectSocket();
     toast('Connecté à YAM');
     setTimeout(()=>{ loadShares(); loadDashboardTrips(); loadConversations(); }, 300);
@@ -1096,6 +1102,7 @@ document.querySelectorAll('.navitem').forEach(btn=>{
     if(view==='zones') loadGeofences();
     if(view==='dashboard'){ loadShares(); loadDashboardTrips(); loadConversations(); }
     if(view==='historique') loadDashboardTrips(true);
+    if(view==='superadmin') loadSuperAdmin();
   });
 });
 
@@ -1418,6 +1425,45 @@ async function loadEntreprise(){
     toast('Erreur chargement entreprise');
   }
 }
+
+async function loadSuperAdmin(){
+  const list = document.getElementById('saCompaniesList');
+  if(!list) return;
+  try{
+    const companies = await api('/api/admin/companies');
+    if(!companies.length){
+      list.innerHTML = '<div style="padding:16px;color:var(--sub);font-size:13px">Aucune entreprise.</div>';
+      return;
+    }
+    list.innerHTML = companies.map(c => `
+      <div class="list-item">
+        <div class="li-icon">🏢</div>
+        <div class="li-body">
+          <div class="li-title">${c.name}</div>
+          <div class="li-sub">Plan: ${c.plan||'Aucun'} - Statut: ${c.license_status||'Aucune licence'} - Max véhicules: ${c.max_vehicles||'-'}</div>
+        </div>
+        <div class="li-action" data-company-id="${c.id}" data-company-plan="${c.plan||''}" data-company-max="${c.max_vehicles||''}" style="cursor:pointer">✏️</div>
+      </div>
+    `).join('');
+    document.querySelectorAll('.li-action[data-company-id]').forEach(el=>{
+      el.onclick = async ()=>{
+        const id = el.dataset.companyId;
+        const plan = prompt('Plan (starter/pro/business):', el.dataset.companyPlan||'starter');
+        if(!plan) return;
+        const maxV = prompt('Max véhicules:', el.dataset.companyMax||'5');
+        if(!maxV) return;
+        try{
+          await api('/api/admin/companies/'+id+'/licenses', {method:'POST', body: JSON.stringify({plan, max_vehicles: parseInt(maxV)})});
+          toast('Licence mise à jour');
+          loadSuperAdmin();
+        }catch(err){ toast('Erreur mise à jour licence'); }
+      };
+    });
+  }catch(err){
+    list.innerHTML = '<div style="padding:16px;color:var(--sub);font-size:13px">Erreur de chargement.</div>';
+  }
+}
+
 
 document.getElementById('entCreateBtn')?.addEventListener('click', async ()=>{
   const name = document.getElementById('entNewName').value.trim();
