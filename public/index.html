@@ -457,7 +457,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 
       <div class="card" style="margin-top:16px">
         <h3>Qui peut voir ma position ?</h3>
-        <div class="list">
+        <div class="list" id="adminActivityList">
           <div class="row-item"><div class="av">M</div><div class="info"><div class="n">Marie (Conjoint)</div><div class="t">Autorisée jusqu'à 14:32</div></div><button class="linkbtn" data-revoke="Marie">Révoquer</button></div>
           <div class="row-item"><div class="av">P</div><div class="info"><div class="n">Papa (Famille)</div><div class="t">Autorisé — 2 h restantes</div></div><button class="linkbtn" data-revoke="Papa">Révoquer</button></div>
         </div>
@@ -642,18 +642,14 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       <p class="sub">Identité de marque : YAM — You and Me · v1.0</p>
       <p class="sub">Statistiques d'usage. Aucun accès arbitraire à la position privée d'un utilisateur.</p>
       <div class="stats">
-        <div class="stat b"><div class="row"><div class="ic">👤</div></div><div class="label">Utilisateurs</div><div class="val">2 458</div><div class="note">+12%</div></div>
-        <div class="stat g"><div class="row"><div class="ic">🟢</div></div><div class="label">Partages actifs</div><div class="val">1 892</div><div class="note">+8%</div></div>
-        <div class="stat v"><div class="row"><div class="ic">📍</div></div><div class="label">Positions reçues</div><div class="val">48 521</div><div class="note">+15%</div></div>
-        <div class="stat o"><div class="row"><div class="ic">🚙</div></div><div class="label">Véhicules</div><div class="val">243</div><div class="note">+6%</div></div>
+        <div class="stat b"><div class="row"><div class="ic">👤</div></div><div class="label">Utilisateurs</div><div class="val" id="statUsers">--</div><div class="note">+12%</div></div>
+        <div class="stat g"><div class="row"><div class="ic">🟢</div></div><div class="label">Partages actifs</div><div class="val" id="statShares">--</div><div class="note">+8%</div></div>
+        <div class="stat v"><div class="row"><div class="ic">📍</div></div><div class="label">Positions reçues</div><div class="val" id="statPositions">--</div><div class="note">+15%</div></div>
+        <div class="stat o"><div class="row"><div class="ic">🚙</div></div><div class="label">Véhicules</div><div class="val" id="statVehicles">--</div><div class="note">+6%</div></div>
       </div>
       <div class="card" style="margin-top:4px">
         <h3>Activité récente <span class="see">Voir tout</span></h3>
         <div class="list">
-          <div class="row-item"><div class="av" style="background:var(--blue)">👤</div><div class="info"><div class="n">Nouvel utilisateur</div><div class="t">Jean Dupont · 10:34</div></div></div>
-          <div class="row-item"><div class="av" style="background:var(--violet)">🚗</div><div class="info"><div class="n">Véhicule en ligne</div><div class="t">Camion 45 · 10:12</div></div></div>
-          <div class="row-item"><div class="av" style="background:var(--green)">✔️</div><div class="info"><div class="n">Livraison terminée</div><div class="t">Commande #2587 · 09:48</div></div></div>
-          <div class="row-item"><div class="av" style="background:var(--red)">📐</div><div class="info"><div class="n">Alerte géofencing</div><div class="t">Sortie de zone · 09:32</div></div></div>
         </div>
       </div>
     </div>
@@ -1110,6 +1106,7 @@ document.querySelectorAll('.navitem').forEach(btn=>{
     if(view==='dashboard'){ loadShares(); loadDashboardTrips(); loadConversations(); }
     if(view==='historique') loadDashboardTrips(true);
     if(view==='superadmin') loadSuperAdmin();
+    if(view==='admin') loadAdminStats();
   });
 });
 
@@ -1468,6 +1465,29 @@ async function loadSuperAdmin(){
     });
   }catch(err){
     list.innerHTML = '<div style="padding:16px;color:var(--sub);font-size:13px">Erreur de chargement.</div>';
+  }
+}
+
+async function loadAdminStats(){
+  try{
+    const d = await api('/api/admin/stats');
+    document.getElementById('statUsers').textContent = d.users;
+    document.getElementById('statShares').textContent = d.sharesActive;
+    document.getElementById('statPositions').textContent = d.positionsTotal;
+    document.getElementById('statVehicles').textContent = d.vehiclesActive;
+    const list = document.getElementById('adminActivityList');
+    if(!list) return;
+    let html = '';
+    (d.recentUsers||[]).forEach(u=>{
+      html += '<div class="row-item"><div class="av">'+(u.name||'?').charAt(0).toUpperCase()+'</div><div class="info"><div class="n">'+(u.name||'Utilisateur')+'</div><div class="t">Inscrit le '+new Date(u.created_at).toLocaleDateString()+'</div></div></div>';
+    });
+    (d.recentShares||[]).forEach(s=>{
+      html += '<div class="row-item"><div class="av">P</div><div class="info"><div class="n">'+(s.owner_name||'Partage')+'</div><div class="t">'+(s.status||'')+' — '+new Date(s.created_at).toLocaleDateString()+'</div></div></div>';
+    });
+    list.innerHTML = html || '<div style="padding:16px;color:var(--sub);font-size:13px">Aucune activité recente.</div>';
+  }catch(err){
+    const list = document.getElementById('adminActivityList');
+    if(list) list.innerHTML = '<div style="padding:16px;color:var(--sub);font-size:13px">Erreur de chargement.</div>';
   }
 }
 
