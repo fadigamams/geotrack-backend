@@ -932,8 +932,6 @@ document.getElementById('authSubmit').addEventListener('click', async ()=>{
     document.querySelector('.sidebar-foot .name').textContent = CURRENT_USER.name;
     document.querySelector('h2.hello').textContent = `Bonjour ${CURRENT_USER.name} 👋`;
   if(CURRENT_USER.isSuperAdmin){ const san=document.getElementById('superAdminNav'); if(san) san.style.display='flex'; }
-  document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
-  document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
     connectSocket();
     toast('Connecté à YAM');
     setTimeout(()=>{ loadShares(); loadDashboardTrips(); loadConversations(); }, 300);
@@ -949,6 +947,8 @@ document.getElementById('shareAppBtn').addEventListener('click', ()=>{
   document.getElementById('shareTelegram').href = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareMsg)}`;
   document.getElementById('shareAppOverlay').classList.add('show');
 });
+document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
+document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
 document.getElementById('shareAppOverlay').addEventListener('click', e=>{
   if(e.target.id==='shareAppOverlay') document.getElementById('shareAppOverlay').classList.remove('show');
 });
