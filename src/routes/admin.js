@@ -51,3 +51,27 @@ router.put('/licenses/:licenseId', async (req, res) => {
 });
 
 module.exports = router;
+router.get('/stats', async (req, res) => {
+  try {
+    const users = await query('SELECT COUNT(*) FROM users');
+    const shares = await query("SELECT COUNT(*) FROM shares WHERE status = 'active'");
+    const positions = await query('SELECT COUNT(*) FROM position_history');
+    const vehicles = await query('SELECT COUNT(*) FROM vehicles WHERE active = true');
+    const recentUsers = await query('SELECT name, created_at FROM users ORDER BY created_at DESC LIMIT 5');
+    const recentShares = await query(
+      `SELECT s.status, s.created_at, u.name AS owner_name
+       FROM shares s JOIN users u ON u.id = s.owner_id
+       ORDER BY s.created_at DESC LIMIT 5`
+    );
+    res.json({
+      users: Number(users.rows[0].count),
+      sharesActive: Number(shares.rows[0].count),
+      positionsTotal: Number(positions.rows[0].count),
+      vehiclesActive: Number(vehicles.rows[0].count),
+      recentUsers: recentUsers.rows,
+      recentShares: recentShares.rows
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur recuperation statistiques' });
+  }
+});
