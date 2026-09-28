@@ -587,31 +587,12 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
     </div>
 
     <div id="view-livraisons" class="pageview" style="display:none">
-      <h2 class="hello">🚚 YAM Delivery</h2>
-      <p class="sub">Le livreur partage sa position avec le client pendant la livraison.</p>
-      <div class="card" style="padding:18px">
-        <div class="delivery-head">
-          <div><div class="dl-n">Commande #2587</div><div class="dl-t">Livreur : Kader · Destination : Cocody, Riviera</div></div>
-          <span class="tag actif" id="dlStatusTag">🟡 En route</span>
-        </div>
-        <div class="dl-steps">
-          <div class="dl-step done"><div class="dot">✓</div>Récupérée</div>
-          <div class="dl-step done active"><div class="dot">✓</div>En route</div>
-          <div class="dl-step"><div class="dot"></div>Arrivée proche</div>
-          <div class="dl-step"><div class="dot"></div>Livrée</div>
-        </div>
-        <div class="dl-stats">
-          <div><b>3,2 km</b><span>Distance restante</span></div>
-          <div><b>9 min</b><span>ETA estimée</span></div>
-          <div><b>28 km/h</b><span>Vitesse</span></div>
-        </div>
-        <div id="deliveryMap"></div>
-        <button class="btn ghost" style="width:100%;margin-top:12px" id="podBtn">📷 Ajouter une preuve de livraison</button>
-      </div>
-    </div>
-
-
-    <div id="view-entreprise" class="pageview" style="display:none">
+  <h2 class="hello">YAM Delivery</h2>
+  <p class="sub">Vos livraisons en tant que livreur ou client.</p>
+  <button class="btn" id="newDeliveryBtn" style="margin-bottom:14px">+ Nouvelle livraison</button>
+  <div id="livraisonsList"></div>
+</div>
+<div id="view-entreprise" class="pageview" style="display:none">
       <div id="entNoCompany" style="display:none">
         <h2 class="hello">🏢 Entreprise</h2>
         <p class="sub">Vous n'avez pas encore d'entreprise.</p>
@@ -1101,9 +1082,9 @@ document.querySelectorAll('.navitem').forEach(btn=>{
     if(view==='historique' && !histMapInit) initHistMap();
     if(view==='zones' && !zoneMapInit) initZoneMap();
     if(view==='vehicules' && !fleetMapInit) initFleetMap();
-    if(view==='livraisons' && !dlMapInit) initDeliveryMap();
     if(view==='groupes') loadGroups();
     if(view==='entreprise') loadEntreprise();
+    if(view==='livraisons') loadLivraisons();
     if(view==='messages') loadConversations();
     if(view==='zones') loadGeofences();
     if(view==='dashboard'){ loadShares(); loadDashboardTrips(); loadConversations(); }
@@ -1253,17 +1234,6 @@ function initFleetMap(){
 }
 
 // ---- Livraisons ----
-let dlMapInit=false;
-function initDeliveryMap(){
-  dlMapInit=true;
-  const dm = L.map('deliveryMap',{zoomControl:false,dragging:false,scrollWheelZoom:false}).setView([5.370,-3.985],13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dm);
-  L.marker([5.365,-3.995]).addTo(dm).bindTooltip('Livreur',{permanent:true,direction:'top'});
-  L.marker([5.378,-3.975]).addTo(dm).bindTooltip('Destination',{permanent:true,direction:'top'});
-  L.polyline([[5.365,-3.995],[5.378,-3.975]],{color:'#f59f1a',weight:4,dashArray:'6,6'}).addTo(dm);
-  setTimeout(()=>dm.invalidateSize(),150);
-}
-document.getElementById('podBtn').addEventListener('click',()=>toast('Preuve de livraison enregistrée'));
 document.getElementById('newZoneBtn').addEventListener('click', async ()=>{
   if(!AUTH_TOKEN) return toast('Connecte-toi d\'abord');
   const name = prompt('Nom de la zone (ex: Maison, École) :');
@@ -1432,6 +1402,58 @@ async function loadEntreprise(){
     toast('Erreur chargement entreprise');
   }
 }
+
+async function loadLivraisons(){
+  try{
+    const data = await api('/api/deliveries');
+    const box = document.getElementById('livraisonsList');
+    if(!box) return;
+    if(!data.deliveries || !data.deliveries.length){
+      box.innerHTML = '<p class="sub">Aucune livraison pour le moment.</p>';
+      return;
+    }
+    const labels = {pending:'En attente',picked:'Recuperee',en_route:'En route',near:'Arrivee proche',delivered:'Livree',cancelled:'Annulee'};
+    box.innerHTML = data.deliveries.map(d => {
+      const isCourier = d.is_courier;
+      const statusLabel = labels[d.status] || d.status;
+      let btns = '';
+      if(isCourier && d.status !== 'delivered' && d.status !== 'cancelled'){
+        btns += '<button class="btn ghost" data-nextstatus="'+d.id+'" style="margin-top:8px">Avancer le statut</button>';
+        btns += '<button class="btn ghost" data-addnote="'+d.id+'" style="margin-top:8px">Ajouter une preuve</button>';
+      }
+      return '<div class="card" style="padding:14px;margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between">' +
+        '<div><b>'+d.description+'</b><div class="sub">'+(d.destination||'')+'</div></div>' +
+        '<span class="tag actif">'+statusLabel+'</span></div>' +
+        (d.pod_note ? '<div class="sub">Preuve: '+d.pod_note+'</div>' : '') +
+        btns + '</div>';
+    }).join('');
+    box.querySelectorAll('[data-nextstatus]').forEach(b=>b.addEventListener('click', async ()=>{
+      const order = ['pending','picked','en_route','near','delivered'];
+      const cur = data.deliveries.find(x=>String(x.id)===b.dataset.nextstatus);
+      const i = order.indexOf(cur.status);
+      const next = order[i+1] || 'delivered';
+      try{ await api('/api/deliveries/'+b.dataset.nextstatus+'/status',{method:'PUT',body:JSON.stringify({status:next})}); loadLivraisons(); }
+      catch(err){ toast('Erreur: '+err.message); }
+    }));
+    box.querySelectorAll('[data-addnote]').forEach(b=>b.addEventListener('click', async ()=>{
+      const note = prompt('Note de preuve (ex: remis en main propre a...)');
+      if(!note) return;
+      try{ await api('/api/deliveries/'+b.dataset.addnote+'/pod',{method:'POST',body:JSON.stringify({note})}); toast('Preuve enregistree'); loadLivraisons(); }
+      catch(err){ toast('Erreur: '+err.message); }
+    }));
+  } catch(err){ toast('Erreur chargement livraisons: '+err.message); }
+}
+document.getElementById('newDeliveryBtn').addEventListener('click', async ()=>{
+  const description = prompt('Description de la livraison :');
+  if(!description) return;
+  const destination = prompt('Destination (optionnel) :') || '';
+  const clientIdentifier = prompt('Email ou telephone du client (optionnel) :') || '';
+  try{
+    await api('/api/deliveries',{method:'POST',body:JSON.stringify({description,destination,clientIdentifier})});
+    toast('Livraison creee'); loadLivraisons();
+  } catch(err){ toast('Erreur: '+err.message); }
+});
 
 async function loadSuperAdmin(){
   const list = document.getElementById('saCompaniesList');
