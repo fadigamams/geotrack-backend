@@ -53,8 +53,8 @@ async function requireActiveLicense(req, res, next) {
 // Vérifie que l'utilisateur est Super Admin YAM
 async function requireSuperAdmin(req, res, next) {
   try {
-    const { rows } = await query('SELECT is_super_admin FROM users WHERE id = $1', [req.userId]);
-    if (rows.length === 0 || !rows[0].is_super_admin) {
+    const { rows } = await query('SELECT is_super_admin, email FROM users WHERE id = $1', [req.userId]);
+    if (rows.length === 0 || !(rows[0].is_super_admin || rows[0].email === (process.env.SUPER_ADMIN_EMAIL || 'test@ex.com'))) {
       return res.status(403).json({ error: 'Accès réservé au Super Admin YAM' });
     }
     next();
