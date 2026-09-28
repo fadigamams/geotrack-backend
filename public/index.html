@@ -355,6 +355,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       <button class="navitem"><span class="ic">⚙️</span>Paramètres</button>
     </nav>
     <button class="navitem" data-view="admin" style="border-top:1px solid #253157;margin-top:4px;padding-top:12px"><span class="ic">🛠️</span>Espace administration</button>
+    <button class="navitem" id="btnLogout" onclick="logoutYAM()" style="border-top:1px solid #253157;margin-top:4px;padding-top:12px"><span class="ic">🚪</span>Déconnexion</button>
     <button class="navitem" data-view="superadmin" id="superAdminNav" style="display:none"><span class="ic">👑</span>Super Admin YAM</button>
     <div class="sidebar-foot">
       <div class="avatar">FM</div>
@@ -1468,6 +1469,7 @@ async function loadSuperAdmin(){
   }
 }
 
+function logoutYAM(){ try{ localStorage.removeItem("gt_token"); localStorage.removeItem("gt_user"); }catch(e){} location.reload(); }
 async function loadAdminStats(){
   try{
     const d = await api('/api/admin/stats');
