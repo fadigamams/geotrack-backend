@@ -57,7 +57,7 @@ router.get('/stats', async (req, res) => {
     const shares = await query("SELECT COUNT(*) FROM shares WHERE status = 'active'");
     const positions = await query('SELECT COUNT(*) FROM position_history');
     const vehicles = await query('SELECT COUNT(*) FROM vehicles WHERE active = true');
-    const recentUsers = await query('SELECT name, created_at FROM users ORDER BY created_at DESC LIMIT 5');
+    const recentUsers = await query('SELECT name, email, created_at FROM users ORDER BY created_at DESC LIMIT 5');
     const recentShares = await query(
       `SELECT s.status, s.created_at, u.name AS owner_name
        FROM shares s JOIN users u ON u.id = s.owner_id
