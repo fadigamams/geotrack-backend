@@ -1486,7 +1486,7 @@ async function loadAdminStats(){
       html += '<div class="row-item"><div class="av">'+(u.name||'?').charAt(0).toUpperCase()+'</div><div class="info"><div class="n">'+(u.name||'Utilisateur')+'</div><div class="t">Inscrit le '+new Date(u.created_at).toLocaleDateString()+'</div></div></div>';
     });
     (d.recentShares||[]).forEach(s=>{
-      html += '<div class="row-item"><div class="av">P</div><div class="info"><div class="n">'+(s.owner_name||'Partage')+'</div><div class="t">'+(s.status||'')+' — '+new Date(s.created_at).toLocaleDateString()+'</div></div></div>';
+      html += '<div class="row-item"><div class="av">P</div><div class="info"><div class="n">'+(s.owner_name||'Partage')+'</div><div class="t">'+(({pending:'En attente',active:'Actif',stopped:'Arrêté',expired:'Expiré',revoked:'Révoqué',denied:'Refusé',ended:'Terminé'})[s.status]||s.status||'')+' — '+new Date(s.created_at).toLocaleDateString()+'</div></div></div>';
     });
     list.innerHTML = html || '<div style="padding:16px;color:var(--sub);font-size:13px">Aucune activité recente.</div>';
   }catch(err){
