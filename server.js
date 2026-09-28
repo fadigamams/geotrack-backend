@@ -35,6 +35,7 @@ app.get('/health', (_req, res) => res.json({ ok: true, service: 'geotrack-backen
 app.use(express.static(path.join(__dirname, 'public')));
 
 const messageRoutes = require('./src/routes/messages');
+const geofenceRoutes = require('./src/routes/geofences');
 app.use('/api/auth', authRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/shares', shareRoutes);
@@ -43,6 +44,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/companies', companiesRoutes);
 app.use('/api/companies/:companyId/vehicles', vehiclesRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/geofences', geofenceRoutes);
 app.use('/api', messageRoutes);
 
 // Erreurs non gérées -> réponse JSON propre plutôt qu'un plantage silencieux
