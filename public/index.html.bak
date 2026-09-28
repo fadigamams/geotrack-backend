@@ -261,7 +261,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 .bubble .time{display:block; font-size:10px; opacity:.7; margin-top:3px}
 .chat-input{display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line)}
 .chat-input input{flex:1; border:1px solid var(--line); border-radius:20px; padding:10px 14px; font-size:13px; background:var(--card); color:var(--ink)}
-.menu-toggle{display:none;width:40px;height:40px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:20px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:4600;width:40px;height:40px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:20px;align-items:center;justify-content:center;cursor:pointer}
 @media (max-width:820px){ .msg-layout{grid-template-columns:1fr; height:auto} .msg-chat-card{height:420px} }
 
 .tag.stopped{background:var(--red-bg);color:#b3242a}
@@ -307,6 +307,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 }
 .toast.show{opacity:1}
 
+.menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:4600;width:40px;height:40px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:20px;align-items:center;justify-content:center;cursor:pointer}
 @media (max-width:820px){
   .app{grid-template-columns:1fr}
   .sidebar{display:none}
@@ -319,6 +320,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 </style>
 </head>
 <body>
+<button class="menu-toggle" id="menuToggleBtn">☰</button>
 <div id="splashScreen">
   <div class="splash-glow"></div>
   <div class="splash-cross">
@@ -355,8 +357,6 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       <button class="navitem"><span class="ic">⚙️</span>Paramètres</button>
     </nav>
     <button class="navitem" data-view="admin" style="border-top:1px solid #253157;margin-top:4px;padding-top:12px"><span class="ic">🛠️</span>Espace administration</button>
-    <button class="navitem" id="btnLogout" onclick="logoutYAM()" style="border-top:1px solid #253157;margin-top:4px;padding-top:12px"><span class="ic">🚪</span>Déconnexion</button>
-    <select id="langSel" onchange="setLangYAM(this.value)" style="margin:8px 12px;padding:8px;border-radius:8px;background:#1b2747;color:#fff;border:1px solid #253157"><option value="fr">🌐 Français</option><option value="en">English</option><option value="ar">العربية</option><option value="es">Español</option><option value="pt">Português</option><option value="sw">Kiswahili</option><option value="ha">Hausa</option><option value="yo">Yorùbá</option><option value="bm">Bamanankan</option><option value="zh-CN">中文</option></select>
     <button class="navitem" data-view="superadmin" id="superAdminNav" style="display:none"><span class="ic">👑</span>Super Admin YAM</button>
     <div class="sidebar-foot">
       <div class="avatar">FM</div>
@@ -365,7 +365,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
   </aside>
 
   <main>
-    <div class="topbar"><button class="menu-toggle" id="menuToggleBtn">≡</button>
+    <div class="topbar">
       <div class="pill" id="shareAppBtn" style="cursor:pointer">📤 Partager</div>
       <div class="pill" id="apiCfgBtn" style="cursor:pointer" title="Adresse du serveur API">⚙️ <span id="apiCfgLabel">API non configurée</span></div>
       <div class="pill">🇨🇮 CI</div>
@@ -499,10 +499,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       </div>
     </div>
 
-    </div>
-
     <div id="view-messages" class="pageview" style="display:none">
-    <button class="btn share" id="newMsgBtn" onclick="newMessageYAM()" style="margin:8px 0">✉️ Nouveau message</button>
       <h2 class="hello">💬 Messages</h2>
       <p class="sub">Écrire à un contact ne lui donne jamais accès à votre position.</p>
       <div class="msg-layout">
@@ -645,14 +642,18 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       <p class="sub">Identité de marque : YAM — You and Me · v1.0</p>
       <p class="sub">Statistiques d'usage. Aucun accès arbitraire à la position privée d'un utilisateur.</p>
       <div class="stats">
-        <div class="stat b"><div class="row"><div class="ic">👤</div></div><div class="label">Utilisateurs</div><div class="val" id="statUsers">--</div><div class="note">Comptes inscrits</div></div>
-        <div class="stat g"><div class="row"><div class="ic">🟢</div></div><div class="label">Partages actifs</div><div class="val" id="statShares">--</div><div class="note">En ce moment</div></div>
-        <div class="stat v"><div class="row"><div class="ic">📍</div></div><div class="label">Positions reçues</div><div class="val" id="statPositions">--</div><div class="note">Depuis le début</div></div>
-        <div class="stat o"><div class="row"><div class="ic">🚙</div></div><div class="label">Véhicules</div><div class="val" id="statVehicles">--</div><div class="note">Actifs</div></div>
+        <div class="stat b"><div class="row"><div class="ic">👤</div></div><div class="label">Utilisateurs</div><div class="val">2 458</div><div class="note">+12%</div></div>
+        <div class="stat g"><div class="row"><div class="ic">🟢</div></div><div class="label">Partages actifs</div><div class="val">1 892</div><div class="note">+8%</div></div>
+        <div class="stat v"><div class="row"><div class="ic">📍</div></div><div class="label">Positions reçues</div><div class="val">48 521</div><div class="note">+15%</div></div>
+        <div class="stat o"><div class="row"><div class="ic">🚙</div></div><div class="label">Véhicules</div><div class="val">243</div><div class="note">+6%</div></div>
       </div>
       <div class="card" style="margin-top:4px">
         <h3>Activité récente <span class="see">Voir tout</span></h3>
-        <div class="list" id="adminActivityList">
+        <div class="list">
+          <div class="row-item"><div class="av" style="background:var(--blue)">👤</div><div class="info"><div class="n">Nouvel utilisateur</div><div class="t">Jean Dupont · 10:34</div></div></div>
+          <div class="row-item"><div class="av" style="background:var(--violet)">🚗</div><div class="info"><div class="n">Véhicule en ligne</div><div class="t">Camion 45 · 10:12</div></div></div>
+          <div class="row-item"><div class="av" style="background:var(--green)">✔️</div><div class="info"><div class="n">Livraison terminée</div><div class="t">Commande #2587 · 09:48</div></div></div>
+          <div class="row-item"><div class="av" style="background:var(--red)">📐</div><div class="info"><div class="n">Alerte géofencing</div><div class="t">Sortie de zone · 09:32</div></div></div>
         </div>
       </div>
     </div>
@@ -933,6 +934,12 @@ document.getElementById('authSubmit').addEventListener('click', async ()=>{
     document.querySelector('.sidebar-foot .name').textContent = CURRENT_USER.name;
     document.querySelector('h2.hello').textContent = `Bonjour ${CURRENT_USER.name} 👋`;
   if(CURRENT_USER.isSuperAdmin){ const san=document.getElementById('superAdminNav'); if(san) san.style.display='flex'; }
+  document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
+  document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
+  document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
+  document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
+  document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
+  document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
     connectSocket();
     toast('Connecté à YAM');
     setTimeout(()=>{ loadShares(); loadDashboardTrips(); loadConversations(); }, 300);
@@ -948,8 +955,6 @@ document.getElementById('shareAppBtn').addEventListener('click', ()=>{
   document.getElementById('shareTelegram').href = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareMsg)}`;
   document.getElementById('shareAppOverlay').classList.add('show');
 });
-document.getElementById('menuToggleBtn')?.addEventListener('click', ()=>{ document.querySelector('.sidebar').classList.toggle('open'); });
-document.querySelector('.sidebar')?.addEventListener('click', e=>{ if(e.target.classList.contains('navitem')) document.querySelector('.sidebar').classList.remove('open'); });
 document.getElementById('shareAppOverlay').addEventListener('click', e=>{
   if(e.target.id==='shareAppOverlay') document.getElementById('shareAppOverlay').classList.remove('show');
 });
@@ -1109,7 +1114,6 @@ document.querySelectorAll('.navitem').forEach(btn=>{
     if(view==='dashboard'){ loadShares(); loadDashboardTrips(); loadConversations(); }
     if(view==='historique') loadDashboardTrips(true);
     if(view==='superadmin') loadSuperAdmin();
-    if(view==='admin') loadAdminStats();
   });
 });
 
@@ -1471,31 +1475,6 @@ async function loadSuperAdmin(){
   }
 }
 
-function logoutYAM(){ try{ localStorage.removeItem("gt_token"); localStorage.removeItem("gt_user"); }catch(e){} location.reload(); }
-async function newMessageYAM(){ const id = prompt("Email ou telephone du contact :"); if(!id) return; try{ const r = await api("/api/users/lookup?identifier="+encodeURIComponent(id.trim())); const c = await api("/api/conversations", {method:"POST", body: JSON.stringify({withUserId: r.user.id})}); await loadConversations(); openConversation(c.conversationId, r.user.id); }catch(err){ toast(err.message||"Contact introuvable"); } }
-async function loadAdminStats(){
-  try{
-    const d = await api('/api/admin/stats');
-    document.getElementById('statUsers').textContent = d.users;
-    document.getElementById('statShares').textContent = d.sharesActive;
-    document.getElementById('statPositions').textContent = d.positionsTotal;
-    document.getElementById('statVehicles').textContent = d.vehiclesActive;
-    const list = document.getElementById('adminActivityList');
-    if(!list) return;
-    let html = '';
-    (d.recentUsers||[]).forEach(u=>{
-      html += '<div class="row-item"><div class="av">'+(u.name||'?').charAt(0).toUpperCase()+'</div><div class="info"><div class="n">'+(u.name||'Utilisateur')+'</div><div class="t">Inscrit le '+new Date(u.created_at).toLocaleDateString()+'</div></div></div>';
-    });
-    (d.recentShares||[]).forEach(s=>{
-      html += '<div class="row-item"><div class="av">P</div><div class="info"><div class="n">'+(s.owner_name||'Partage')+'</div><div class="t">'+(({pending:'En attente',active:'Actif',stopped:'Arrêté',expired:'Expiré',revoked:'Révoqué',denied:'Refusé',ended:'Terminé'})[s.status]||s.status||'')+' — '+new Date(s.created_at).toLocaleDateString()+'</div></div></div>';
-    });
-    list.innerHTML = html || '<div style="padding:16px;color:var(--sub);font-size:13px">Aucune activité recente.</div>';
-  }catch(err){
-    const list = document.getElementById('adminActivityList');
-    if(list) list.innerHTML = '<div style="padding:16px;color:var(--sub);font-size:13px">Erreur de chargement.</div>';
-  }
-}
-
 
 document.getElementById('entCreateBtn')?.addEventListener('click', async ()=>{
   const name = document.getElementById('entNewName').value.trim();
@@ -1721,5 +1700,5 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
   b.addEventListener('click',()=>toast(`Accès révoqué pour ${b.dataset.revoke}`));
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script><script src="lang.js"></script></body>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script></body>
 </html>
