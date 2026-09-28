@@ -95,7 +95,8 @@ router.post('/conversations/:id/messages', requireAuth, async (req, res) => {
   if (!(await isMember(convId, req.userId))) return res.status(403).json({ error: 'Accès refusé à cette conversation' });
 
   const { body, kind, meta } = req.body || {};
-  if (!body || !body.trim()) return res.status(400).json({ error: 'Message vide' });
+  const isMedia = kind === 'image' || kind === 'video';
+  if (!isMedia && (!body || !body.trim())) return res.status(400).json({ error: 'Message vide' });
 
   // Vérifie qu'aucun membre n'a bloqué l'expéditeur (conversations 1:1)
   const others = await db.query(
@@ -109,7 +110,7 @@ router.post('/conversations/:id/messages', requireAuth, async (req, res) => {
   const result = await db.query(
     `INSERT INTO messages (conversation_id, sender_id, body, kind, meta) VALUES ($1,$2,$3,$4,$5)
      RETURNING id, sender_id, body, kind, meta, created_at`,
-    [convId, req.userId, body.trim(), kind || 'text', meta ? JSON.stringify(meta) : null]
+    [convId, req.userId, (body || '').trim(), kind || 'text', meta ? JSON.stringify(meta) : null]
   );
   const msg = result.rows[0];
 
