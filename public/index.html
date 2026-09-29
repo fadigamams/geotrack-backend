@@ -896,12 +896,12 @@ function compassFr(fla,fln,tla,tln){
   return ["au nord","au nord-est","à l'est","au sud-est","au sud","au sud-ouest","à l'ouest","au nord-ouest"][Math.round(b/45)%8];
 }
 async function nearWide(la,ln){
-  var rs=[150,500,1500,4000];
-  var f='[~"^(amenity|shop|office|tourism|leisure|healthcare|place)$"~"."]';
-  for(var i=0;i<rs.length;i++){
+  var f='[~"^(amenity|shop|office|tourism|leisure|healthcare)$"~"."]';
+  var q="[out:json][timeout:12];(node(around:2000,"+la+","+ln+")[name]"+f+";way(around:2000,"+la+","+ln+")[name]"+f+";);out center 150;";
+  var eps=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
+  for(var i=0;i<eps.length;i++){
     try{
-      var q="[out:json][timeout:10];(node(around:"+rs[i]+","+la+","+ln+")[name]"+f+";way(around:"+rs[i]+","+la+","+ln+")[name]"+f+";);out center 40;";
-      var r=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent(q)});
+      var r=await fetch(eps[i],{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent(q)});
       var j=await r.json(), best=null, bd=1e12;
       (j.elements||[]).forEach(function(el){
         var a=(typeof el.lat==="number")?el.lat:(el.center?el.center.lat:null), o=(typeof el.lon==="number")?el.lon:(el.center?el.center.lon:null);
@@ -909,12 +909,13 @@ async function nearWide(la,ln){
         var d=distMeters(la,ln,a,o); if(d<bd){ bd=d; best={name:el.tags.name,distance:Math.round(d),la:a,ln:o}; }
       });
       if(best){ return best; }
+      break;
     }catch(e){}
   }
   try{
-    var u=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&lat="+la+"&lon="+ln);
+    var u=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat="+la+"&lon="+ln);
     var k=await u.json(), ad=k.address||{};
-    var n2=k.name||ad.road||ad.neighbourhood||ad.suburb||ad.city||ad.town||ad.village;
+    var n2=k.name||ad.amenity||ad.shop||ad.road||ad.neighbourhood||ad.suburb;
     if(n2){ return {name:n2,distance:0,la:la,ln:ln}; }
   }catch(e){}
   return null;
