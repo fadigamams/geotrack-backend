@@ -407,7 +407,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
               <div class="pc-ic" id="pcIcon">📍</div>
               <div><div class="pc-t">Type de lieu détecté</div><div class="pc-n" id="pcName">—</div></div>
             </div>
-            <div class="simbadge" id="simBadge">🟠 SIMULATION</div>
+            <div class="simbadge" id="simBadge">Recherche GPS...</div>
           </div>
           <div class="actions">
             <button class="btn share" id="shareBtn">📍 Partager ma position</button>
@@ -1003,8 +1003,8 @@ document.getElementById('confirmShare').addEventListener('click', ()=>{
   toast('Partage de position démarré');
 
   if(navigator.geolocation){
-    let gotFirstFix = false;
-    watchId = navigator.geolocation.watchPosition(
+    let gotFirstFix = false; let lowMode = false;
+    const startWatch = (hi)=>{ watchId = navigator.geolocation.watchPosition(
       pos=>{
         gotFirstFix = true;
         lat=pos.coords.latitude; lng=pos.coords.longitude;
@@ -1018,10 +1018,11 @@ document.getElementById('confirmShare').addEventListener('click', ()=>{
       (err)=>{
         // code 1 = permission refusée -> démonstration. code 2/3 = signal faible/lent -> on patiente, pas de démo.
         if(err.code===1){ toast("Position GPS refusée : autorisez la localisation pour ce site dans les réglages de Chrome"); stopSharing(false); }
-        else if(!gotFirstFix){ toast("Signal GPS faible, en attente..."); }
+        else if(gotFirstFix===false){ if(lowMode===false){ lowMode=true; navigator.geolocation.clearWatch(watchId); toast("Signal GPS faible, passage en localisation reseau..."); startWatch(false); } else { toast("Position introuvable : activez la localisation du telephone (Wi-Fi et donnees) ou sortez en plein air"); stopSharing(false); } }
       },
-      {enableHighAccuracy:true, maximumAge:0, timeout:25000}
-    );
+      {enableHighAccuracy:hi, maximumAge:(hi?0:30000), timeout:(hi?20000:60000)}
+    ); };
+    startWatch(true);
   } else { toast("GPS indisponible sur cet appareil ou ce navigateur"); stopSharing(false); }
 
   if(mins>0){
