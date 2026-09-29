@@ -888,12 +888,45 @@ var yamFollowed={}, yamOthers={}, yamFollowList=[];
 function fEsc(x){ return String(x).replace(/[<>&"']/g,""); }
 var yamPlace={}, yamArgs={};
 function placeText(id){ var p=yamPlace[id]; return (p&&p.text)?p.text:""; }
+function compassFr(fla,fln,tla,tln){
+  var rad=Math.PI/180, dl=(tln-fln)*rad;
+  var y=Math.sin(dl)*Math.cos(tla*rad);
+  var x=Math.cos(fla*rad)*Math.sin(tla*rad)-Math.sin(fla*rad)*Math.cos(tla*rad)*Math.cos(dl);
+  var b=(Math.atan2(y,x)/rad+360)%360;
+  return ["au nord","au nord-est","à l'est","au sud-est","au sud","au sud-ouest","à l'ouest","au nord-ouest"][Math.round(b/45)%8];
+}
+async function nearWide(la,ln){
+  var rs=[150,500,1500,4000];
+  var f='[~"^(amenity|shop|office|tourism|leisure|healthcare|place)$"~"."]';
+  for(var i=0;i<rs.length;i++){
+    try{
+      var q="[out:json][timeout:10];(node(around:"+rs[i]+","+la+","+ln+")[name]"+f+";way(around:"+rs[i]+","+la+","+ln+")[name]"+f+";);out center 40;";
+      var r=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent(q)});
+      var j=await r.json(), best=null, bd=1e12;
+      (j.elements||[]).forEach(function(el){
+        var a=(typeof el.lat==="number")?el.lat:(el.center?el.center.lat:null), o=(typeof el.lon==="number")?el.lon:(el.center?el.center.lon:null);
+        if(a===null||o===null||el.tags===undefined||el.tags.name===undefined){ return; }
+        var d=distMeters(la,ln,a,o); if(d<bd){ bd=d; best={name:el.tags.name,distance:Math.round(d),la:a,ln:o}; }
+      });
+      if(best){ return best; }
+    }catch(e){}
+  }
+  try{
+    var u=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&lat="+la+"&lon="+ln);
+    var k=await u.json(), ad=k.address||{};
+    var n2=k.name||ad.road||ad.neighbourhood||ad.suburb||ad.city||ad.town||ad.village;
+    if(n2){ return {name:n2,distance:0,la:la,ln:ln}; }
+  }catch(e){}
+  return null;
+}
 function fetchPlace(id,la,ln){
   var c=yamPlace[id], now=Date.now();
   if(c&&now-c.at<60000&&distMeters(la,ln,c.la,c.ln)<35){ return; }
   yamPlace[id]={at:now,la:la,ln:ln,text:(c&&c.text)?c.text:""};
-  nearestNamedPlace(la,ln).then(function(r){
-    yamPlace[id].text=(r&&r.name)?"Non loin de "+fEsc(r.name):"";
+  nearWide(la,ln).then(function(r){
+    var tx="";
+    if(r){ var nm=fEsc(r.name); if(r.distance<=150){ tx="Non loin de "+nm; } else { var dd=r.distance<1000?"≈ "+Math.round(r.distance/10)*10+" m":"≈ "+(r.distance/1000).toFixed(1)+" km"; tx=dd+" "+compassFr(r.la,r.ln,la,ln)+" de "+nm; } }
+    yamPlace[id].text=tx;
     var a=yamArgs[id]; if(a&&yamFollowed[id]){ showOther(id,a.la,a.ln,a.acc,a.when,false); }
   });
 }
