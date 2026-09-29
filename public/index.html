@@ -887,12 +887,21 @@ function connectSocket(){
 var yamFollowed={}, yamOthers={}, yamFollowList=[];
 function fEsc(x){ return String(x).replace(/[<>&"']/g,""); }
 function showOther(id,la,ln,acc,when,center){
+  if(!document.getElementById("yamStyle")){ var st=document.createElement("style"); st.id="yamStyle"; st.textContent="@keyframes yamPulse{0%{transform:scale(.6);opacity:1}100%{transform:scale(2.2);opacity:0}}"; document.head.appendChild(st); }
   var t=new Date(when||Date.now()).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   var nm=fEsc(yamFollowed[id]||"Contact");
-  var html="<b>"+nm+"</b><br>Mis à jour : "+t;
-  if(yamOthers[id]){ yamOthers[id].setLatLng([la,ln]); yamOthers[id].setTooltipContent(nm); yamOthers[id].setPopupContent(html); }
-  else { yamOthers[id]=L.circleMarker([la,ln],{radius:10,color:"#fff",weight:3,fillColor:"#e11d48",fillOpacity:1}).addTo(map); yamOthers[id].bindTooltip(nm,{permanent:true,direction:"top",offset:[0,-8]}); yamOthers[id].bindPopup(html); }
-  if(center){ map.setView([la,ln], Math.max(map.getZoom(),15)); }
+  var me=(typeof lat==="number"&&typeof lng==="number");
+  var dist=""; if(me){ var d=distMeters(lat,lng,la,ln); dist=d<1000?Math.round(d)+" m":(d/1000).toFixed(1)+" km"; }
+  var html="<b>"+nm+"</b><br>"+(dist?"Distance : "+dist+"<br>":"")+"Mis à jour : "+t+"<br>Précision : "+Math.round(acc||0)+" m";
+  var lab=nm+(dist?" · "+dist:"");
+  var ic=L.divIcon({className:"",iconSize:[0,0],html:"<div style='position:relative'><div style='position:absolute;left:-16px;top:-16px;width:32px;height:32px;border-radius:50%;background:rgba(225,29,72,.4);animation:yamPulse 1.6s infinite'></div><div style='position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:#e11d48;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.6)'></div><div style='position:absolute;left:16px;top:-16px;white-space:nowrap;background:#e11d48;color:#fff;font-weight:600;font-size:12px;padding:3px 8px;border-radius:10px'>"+lab+"</div></div>"});
+  if(yamOthers[id]){ map.removeLayer(yamOthers[id]); }
+  var g=L.layerGroup();
+  L.circle([la,ln],{radius:Math.max(acc||0,15),color:"#e11d48",weight:1,fillColor:"#e11d48",fillOpacity:0.12}).addTo(g);
+  if(me){ L.polyline([[lat,lng],[la,ln]],{color:"#e11d48",weight:3,dashArray:"8 8"}).addTo(g); }
+  L.marker([la,ln],{icon:ic,zIndexOffset:1000}).addTo(g).bindPopup(html);
+  g.addTo(map); yamOthers[id]=g;
+  if(center){ if(me){ map.fitBounds([[lat,lng],[la,ln]],{padding:[60,60],maxZoom:17}); } else { map.setView([la,ln],16); } }
 }
 async function followUser(id,name){
   yamFollowed[id]=name;
