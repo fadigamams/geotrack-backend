@@ -1017,13 +1017,13 @@ document.getElementById('confirmShare').addEventListener('click', ()=>{
       },
       (err)=>{
         // code 1 = permission refusée -> démonstration. code 2/3 = signal faible/lent -> on patiente, pas de démo.
-        if(err.code===1){ toast("Position GPS refusée : autorisez la localisation pour ce site dans les réglages de Chrome"); stopSharing(false); }
-        else if(gotFirstFix===false){ if(lowMode===false){ lowMode=true; navigator.geolocation.clearWatch(watchId); toast("Signal GPS faible, passage en localisation reseau..."); startWatch(false); } else { toast("Position introuvable : activez la localisation du telephone (Wi-Fi et donnees) ou sortez en plein air"); stopSharing(false); } }
+        if(err.code===1){ stopSharing(false); showGpsHelp("denied"); }
+        else if(gotFirstFix===false){ if(lowMode===false){ lowMode=true; navigator.geolocation.clearWatch(watchId); toast("Signal GPS faible, passage en localisation reseau..."); startWatch(false); } else { stopSharing(false); showGpsHelp("lost"); } }
       },
       {enableHighAccuracy:hi, maximumAge:(hi?0:30000), timeout:(hi?20000:60000)}
     ); };
     startWatch(true);
-  } else { toast("GPS indisponible sur cet appareil ou ce navigateur"); stopSharing(false); }
+  } else { stopSharing(false); showGpsHelp("unsupported"); }
 
   if(mins>0){
     shareEndsAt = Date.now() + mins*60000;
@@ -1032,6 +1032,24 @@ document.getElementById('confirmShare').addEventListener('click', ()=>{
     },1000);
   }
 });
+
+function showGpsHelp(kind){
+  var old=document.getElementById("gpsHelp"); if(old){ old.remove(); }
+  var t={denied:"Localisation bloquée",lost:"Position introuvable",unsupported:"GPS indisponible"}[kind]||"GPS";
+  var inApp=/FBAN|FBAV|Instagram|WhatsApp|; wv\)/.test(navigator.userAgent);
+  var s="";
+  if(inApp){ s+="<li><b>Ouvrez ce site dans Chrome</b> (application intégrée détectée).</li>"; }
+  s+="<li>Activez la localisation du téléphone (précision élevée).</li>";
+  s+="<li>Chrome : menu ⋮ → Paramètres → Paramètres des sites → Localisation → autoriser ce site.</li>";
+  s+="<li>Activez le Wi-Fi ou les données, ou sortez en plein air.</li>";
+  var d=document.createElement("div"); d.id="gpsHelp";
+  d.style.cssText="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px";
+  var bs="border:0;border-radius:10px;padding:10px 16px;font-size:15px;";
+  d.innerHTML="<div style='background:#fff;border-radius:16px;padding:20px;max-width:420px;width:100%'><h3 style='margin:0 0 10px'>"+t+"</h3><ol style='padding-left:20px;line-height:1.5'>"+s+"</ol><div style='display:flex;gap:10px;margin-top:14px'><button id='gpsRetry' style='"+bs+"background:#2f6fed;color:#fff'>Réessayer</button><button id='gpsClose' style='"+bs+"background:#eee'>Fermer</button></div></div>";
+  document.body.appendChild(d);
+  document.getElementById("gpsClose").onclick=function(){ d.remove(); };
+  document.getElementById("gpsRetry").onclick=function(){ d.remove(); var b=document.getElementById("shareBtn"); if(b){ b.click(); } };
+}
 
 function stopSharing(expired){
   if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
