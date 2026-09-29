@@ -881,9 +881,48 @@ function connectSocket(){
     renderConvList();
   });
   socket.on('position:update', (p)=>{
-    if(watchingOwnerId && p.userId===watchingOwnerId){ lat=p.lat; lng=p.lng; placeMarker(lat,lng,p.accuracy||20,!p.isDemo); }
+    if(yamFollowed[p.userId]){ showOther(p.userId,p.lat,p.lng,p.accuracy||20,Date.now(),false); }
   });
 }
+var yamFollowed={}, yamOthers={}, yamFollowList=[];
+function fEsc(x){ return String(x).replace(/[<>&"']/g,""); }
+function showOther(id,la,ln,acc,when,center){
+  var t=new Date(when||Date.now()).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  var nm=fEsc(yamFollowed[id]||"Contact");
+  var html="<b>"+nm+"</b><br>Mis à jour : "+t;
+  if(yamOthers[id]){ yamOthers[id].setLatLng([la,ln]); yamOthers[id].setTooltipContent(nm); yamOthers[id].setPopupContent(html); }
+  else { yamOthers[id]=L.circleMarker([la,ln],{radius:10,color:"#fff",weight:3,fillColor:"#e11d48",fillOpacity:1}).addTo(map); yamOthers[id].bindTooltip(nm,{permanent:true,direction:"top",offset:[0,-8]}); yamOthers[id].bindPopup(html); }
+  if(center){ map.setView([la,ln], Math.max(map.getZoom(),15)); }
+}
+async function followUser(id,name){
+  yamFollowed[id]=name;
+  try{ var p=await api("/api/positions/"+id); showOther(id,p.lat,p.lng,p.accuracy,p.updatedAt,true); toast(name+" localisé sur la carte"); }
+  catch(e){ toast("Position indisponible : "+name+" doit lancer le partage de sa position"); }
+}
+function stopFollow(id){ delete yamFollowed[id]; if(yamOthers[id]){ map.removeLayer(yamOthers[id]); delete yamOthers[id]; } }
+setInterval(function(){ Object.keys(yamFollowed).forEach(function(id){ api("/api/positions/"+id).then(function(p){ showOther(id,p.lat,p.lng,p.accuracy,p.updatedAt,false); }).catch(function(){}); }); },15000);
+function setupFollow(list){
+  yamFollowList=list.filter(function(s){ return s.status==="active"; });
+  var b=document.getElementById("followBtn");
+  if(b===null){ b=document.createElement("button"); b.id="followBtn"; b.onclick=openFollow;
+    b.style.cssText="position:fixed;right:14px;bottom:90px;z-index:9998;border:0;border-radius:24px;padding:12px 16px;font-size:15px;background:#e11d48;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.3)";
+    document.body.appendChild(b); }
+  b.textContent="👥 Mes contacts ("+yamFollowList.length+")";
+}
+function openFollow(){
+  var old=document.getElementById("followBox"); if(old){ old.remove(); }
+  var d=document.createElement("div"); d.id="followBox";
+  d.style.cssText="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px";
+  var rows="";
+  yamFollowList.forEach(function(s){ var on=yamFollowed[s.owner_id]?true:false; var n=fEsc(s.owner_name);
+    rows+="<div style='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee'><span>"+n+"</span><button data-id='"+s.owner_id+"' data-n='"+n+"' style='border:0;border-radius:10px;padding:8px 12px;background:"+(on?"#eee":"#2f6fed")+";color:"+(on?"#111":"#fff")+"'>"+(on?"Masquer":"Voir sur la carte")+"</button></div>"; });
+  if(rows===""){ rows="<p>Personne ne partage sa position avec vous pour le moment. Demandez à votre contact de choisir Partager ma position, puis votre nom.</p>"; }
+  d.innerHTML="<div style='background:#fff;border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:80vh;overflow:auto'><h3 style='margin:0 0 10px'>Contacts qui partagent avec moi</h3>"+rows+"<button id='followClose' style='margin-top:14px;border:0;border-radius:10px;padding:10px 16px;background:#eee'>Fermer</button></div>";
+  document.body.appendChild(d);
+  d.querySelector("#followClose").onclick=function(){ d.remove(); };
+  d.querySelectorAll("button[data-id]").forEach(function(b){ b.onclick=function(){ var id=b.getAttribute("data-id"); if(yamFollowed[id]){ stopFollow(id); } else { followUser(id,b.getAttribute("data-n")); } d.remove(); }; });
+}
+
 let watchingOwnerId = null;
 
 // ---- Écran de connexion ----
@@ -1311,6 +1350,7 @@ async function loadShares(){
     });
 
     const sharedWithMe = await api('/api/shares/shared-with-me');
+    try{ setupFollow(sharedWithMe.shares||[]); }catch(e){}
     const pending = sharedWithMe.shares.filter(s=>s.status==='pending');
     document.getElementById('pendingCount').textContent = pending.length ? pending.length+' en attente' : '';
     const alertsEl = document.getElementById('alertsToday'); if(alertsEl) alertsEl.textContent = pending.length;
