@@ -520,7 +520,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
             </div>
             <div class="chat-body" id="chatBody"></div>
             <div class="chat-input">
-              <input id="chatInput" placeholder="Écrire un message…" maxlength="2000">
+              <button class="linkbtn" id="attachBtn" title="Joindre photo/video">📎</button><input type="file" id="attachFile" accept="image/*,video/*" style="display:none"><input id="chatInput" placeholder="Écrire un message…" maxlength="2000">
               <button class="btn share" id="chatSendBtn" style="flex:none;padding:10px 16px">➤</button>
             </div>
           </div>
@@ -1628,7 +1628,17 @@ async function openConversation(convId, otherId){
 function renderBubble(m){
   const mine = m.sender_id === CURRENT_USER?.id;
   const time = new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  return `<div class="bubble ${mine?'mine':'theirs'}">${m.body.replace(/</g,'&lt;')}<span class="time">${time}</span></div>`;
+      let meta = null;
+    try{ meta = typeof m.meta === 'string' ? JSON.parse(m.meta) : m.meta; }catch(e){}
+    let inner;
+    if(m.kind === 'image' && meta && meta.url){
+      inner = '<img src="'+meta.url+'" style="max-width:220px;border-radius:10px;display:block">';
+    } else if(m.kind === 'video' && meta && meta.url){
+      inner = '<video src="'+meta.url+'" controls style="max-width:220px;border-radius:10px;display:block"></video>';
+    } else {
+      inner = m.body.replace(/</g,'&lt;');
+    }
+    return `<div class="bubble ${mine?'mine':'theirs'}">${inner}<span class="time">${time}</span></div>`;
 }
 
 document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
@@ -1642,6 +1652,29 @@ async function sendChatMessage(){
     await api(`/api/conversations/${activeConvId}/messages`, {method:'POST', body:JSON.stringify({body:text})});
   } catch(err){ toast('Erreur : '+err.message); }
 }
+
+document.getElementById('attachBtn').addEventListener('click', ()=>{
+  document.getElementById('attachFile').click();
+});
+document.getElementById('attachFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !activeConvId) return;
+  toast('Envoi en cours...');
+  try{
+    const kind = file.type.startsWith('video') ? 'video' : 'image';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('type', 'message');
+    const upRes = await fetch(API_BASE.replace(/\/$/,'') + '/api/media/upload', {
+      method:'POST', headers:{Authorization:'Bearer '+AUTH_TOKEN}, body: fd
+    });
+    const upData = await upRes.json();
+    if(!upRes.ok) throw new Error(upData.error || 'Erreur upload');
+    await api('/api/conversations/'+activeConvId+'/messages', {method:'POST', body:JSON.stringify({body:'', kind, meta:{url:upData.url}})});
+    openConversation(activeConvId, activeConvOtherId);
+  } catch(err){ toast('Erreur: '+err.message); }
+});
 
 document.getElementById('newConvBtn').addEventListener('click', async ()=>{
   if(!AUTH_TOKEN) return toast('Connecte-toi d\'abord');
