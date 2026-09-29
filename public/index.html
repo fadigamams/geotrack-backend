@@ -886,15 +886,28 @@ function connectSocket(){
 }
 var yamFollowed={}, yamOthers={}, yamFollowList=[];
 function fEsc(x){ return String(x).replace(/[<>&"']/g,""); }
+var yamPlace={}, yamArgs={};
+function placeText(id){ var p=yamPlace[id]; return (p&&p.text)?p.text:""; }
+function fetchPlace(id,la,ln){
+  var c=yamPlace[id], now=Date.now();
+  if(c&&now-c.at<60000&&distMeters(la,ln,c.la,c.ln)<35){ return; }
+  yamPlace[id]={at:now,la:la,ln:ln,text:(c&&c.text)?c.text:""};
+  nearestNamedPlace(la,ln).then(function(r){
+    yamPlace[id].text=(r&&r.name)?"Non loin de "+fEsc(r.name):"";
+    var a=yamArgs[id]; if(a&&yamFollowed[id]){ showOther(id,a.la,a.ln,a.acc,a.when,false); }
+  });
+}
 function showOther(id,la,ln,acc,when,center){
+  yamArgs[id]={la:la,ln:ln,acc:acc,when:when}; fetchPlace(id,la,ln); var pl=placeText(id);
   if(!document.getElementById("yamStyle")){ var st=document.createElement("style"); st.id="yamStyle"; st.textContent="@keyframes yamPulse{0%{transform:scale(.6);opacity:1}100%{transform:scale(2.2);opacity:0}}"; document.head.appendChild(st); }
   var t=new Date(when||Date.now()).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   var nm=fEsc(yamFollowed[id]||"Contact");
   var me=(typeof lat==="number"&&typeof lng==="number");
   var dist=""; if(me){ var d=distMeters(lat,lng,la,ln); dist=d<1000?Math.round(d)+" m":(d/1000).toFixed(1)+" km"; }
-  var html="<b>"+nm+"</b><br>"+(dist?"Distance : "+dist+"<br>":"")+"Mis à jour : "+t+"<br>Précision : "+Math.round(acc||0)+" m";
+  var html="<b>"+nm+"</b><br>"+(dist?"Distance : "+dist+"<br>":"")+(pl?pl+"<br>":"")+"Mis à jour : "+t+"<br>Précision : "+Math.round(acc||0)+" m";
   var lab=nm+(dist?" · "+dist:"");
-  var ic=L.divIcon({className:"",iconSize:[0,0],html:"<div style='position:relative'><div style='position:absolute;left:-16px;top:-16px;width:32px;height:32px;border-radius:50%;background:rgba(225,29,72,.4);animation:yamPulse 1.6s infinite'></div><div style='position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:#e11d48;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.6)'></div><div style='position:absolute;left:16px;top:-16px;white-space:nowrap;background:#e11d48;color:#fff;font-weight:600;font-size:12px;padding:3px 8px;border-radius:10px'>"+lab+"</div></div>"});
+  var pb=pl?"<div style='position:absolute;left:16px;top:10px;white-space:nowrap;background:#1e293b;color:#fff;font-size:12px;padding:3px 8px;border-radius:10px'>"+pl+"</div>":"";
+  var ic=L.divIcon({className:"",iconSize:[0,0],html:"<div style='position:relative'><div style='position:absolute;left:-16px;top:-16px;width:32px;height:32px;border-radius:50%;background:rgba(225,29,72,.4);animation:yamPulse 1.6s infinite'></div><div style='position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:#e11d48;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.6)'></div><div style='position:absolute;left:16px;top:-16px;white-space:nowrap;background:#e11d48;color:#fff;font-weight:600;font-size:12px;padding:3px 8px;border-radius:10px'>"+lab+"</div>"+pb+"</div>"});
   if(yamOthers[id]){ map.removeLayer(yamOthers[id]); }
   var g=L.layerGroup();
   L.circle([la,ln],{radius:Math.max(acc||0,15),color:"#e11d48",weight:1,fillColor:"#e11d48",fillOpacity:0.12}).addTo(g);
