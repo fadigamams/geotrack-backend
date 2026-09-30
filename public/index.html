@@ -550,7 +550,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
         <button class="gtab" data-n="systeme">Système</button>
       </div>
       <div class="card" style="margin-top:14px">
-        <div class="list">
+        <div class="list" id="notifList">
           <div class="notif-row" data-n="alertes"><div class="nic red">🚨</div><div class="info"><div class="n">SOS déclenché</div><div class="t">12:45 · Jean</div></div></div>
           <div class="notif-row" data-n="alertes"><div class="nic orange">📐</div><div class="info"><div class="n">Sortie de zone</div><div class="t">11:32 · École</div></div></div>
           <div class="notif-row" data-n="systeme"><div class="nic green">✔️</div><div class="info"><div class="n">Arrivée à destination</div><div class="t">10:20 · Restaurant</div></div></div>
@@ -1968,6 +1968,27 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
   btn.onclick=async function(){ var p=await Notification.requestPermission(); if(p==='granted'){ done=true; sub(false); } else { btn.remove(); btn=null; } };
   document.body.appendChild(btn);
  },3000);
+}catch(e){} })();
+</script>
+<script>
+(function(){ try{
+ function fmt(d){ var t=new Date(d), n=new Date(); var hm=t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); return t.toDateString()===n.toDateString()?hm:t.toLocaleDateString('fr-FR')+' '+hm; }
+ function esc(s){ return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+ async function load(){
+  var box=document.getElementById('notifList'), v=document.getElementById('view-notifications');
+  if(box===null||v===null||v.style.display==='none') return;
+  if(typeof AUTH_TOKEN==='undefined'||AUTH_TOKEN===null||AUTH_TOKEN==='') return;
+  var r=await api('/api/notifications'), l=r.notifications||[], h='';
+  l.forEach(function(n){
+   h+='<div class="notif-row" data-n="'+esc(n.kind)+'"><div class="nic">'+esc(n.icon)+'</div><div class="info"><div class="n">'+esc(n.title)+'</div><div class="t">'+fmt(n.created_at)+(n.body?' · '+esc(n.body):'')+'</div></div></div>';
+  });
+  if(l.length===0){ h='<div style="padding:20px;color:#64748b">Aucune notification pour le moment</div>'; }
+  box.innerHTML=h;
+  var on=document.querySelector('#notifTabs .gtab.on'), f=on===null?'toutes':on.dataset.n;
+  box.querySelectorAll('.notif-row').forEach(function(x){ x.style.display=(f==='toutes'||x.dataset.n===f)?'flex':'none'; });
+ }
+ setInterval(function(){ load().catch(function(){}); },8000);
+ document.addEventListener('click',function(){ setTimeout(function(){ load().catch(function(){}); },400); });
 }catch(e){} })();
 </script>
 </body>

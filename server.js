@@ -52,6 +52,7 @@ app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api', messageRoutes);
 app.use('/api/push', require('./src/push').router);
+app.use('/api/notifications', require('./src/routes/notifs').router);
 
 // Erreurs non gérées -> réponse JSON propre plutôt qu'un plantage silencieux
 app.use((err, _req, res, _next) => {

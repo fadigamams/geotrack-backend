@@ -121,6 +121,7 @@ router.post('/conversations/:id/messages', requireAuth, async (req, res) => {
   const who = await db.query('SELECT name FROM users WHERE id=$1', [req.userId]);
   const txt = (msg.kind === 'text' && msg.body) ? msg.body : '📷 Photo ou vidéo';
   for (const o of others.rows) require('../push').notifyUser(o.user_id, { title: who.rows[0].name, body: txt, convId: convId });
+  for (const o of others.rows) require('./notifs').addNotif(o.user_id, 'systeme', '💬', 'Message de ' + who.rows[0].name, txt);
   res.status(201).json({ message: msg });
 });
 
