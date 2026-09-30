@@ -1942,5 +1942,33 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
   b.addEventListener('click',()=>toast(`Accès révoqué pour ${b.dataset.revoke}`));
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script><script src="lang.js"></script></body>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script><script src="lang.js"></script><script>
+(function(){ try{
+ if(('serviceWorker' in navigator)===false||('PushManager' in window)===false) return;
+ var done=false, btn=null;
+ function u8(s){ var p='='.repeat((4-s.length%4)%4); var r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/')); var o=new Uint8Array(r.length); for(var i=0;i<r.length;i++){ o[i]=r.charCodeAt(i); } return o; }
+ async function sub(auto){
+  try{
+   var reg=await navigator.serviceWorker.register('/sw.js');
+   await navigator.serviceWorker.ready;
+   var k=await (await fetch(API_BASE.replace(/\/$/,'')+'/api/push/key')).json();
+   var s=await reg.pushManager.getSubscription();
+   if(s===null){ s=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(k.publicKey)}); }
+   await api('/api/push/subscribe',{method:'POST',body:JSON.stringify({subscription:s.toJSON()})});
+   if(btn!==null){ btn.remove(); btn=null; }
+  }catch(e){ if(auto===false){ alert('Notifications: '+e.message); } }
+ }
+ setInterval(function(){
+  if(done) return;
+  if(typeof AUTH_TOKEN==='undefined'||AUTH_TOKEN===null||AUTH_TOKEN==='') return;
+  if(Notification.permission==='granted'){ done=true; sub(true); return; }
+  if(Notification.permission==='denied'||btn!==null) return;
+  btn=document.createElement('button'); btn.textContent='🔔 Activer les notifications';
+  btn.style.cssText='position:fixed;left:12px;bottom:12px;z-index:9999;padding:12px 16px;border-radius:24px;border:0;background:#2563eb;color:#fff;font-weight:600';
+  btn.onclick=async function(){ var p=await Notification.requestPermission(); if(p==='granted'){ done=true; sub(false); } else { btn.remove(); btn=null; } };
+  document.body.appendChild(btn);
+ },3000);
+}catch(e){} })();
+</script>
+</body>
 </html>
