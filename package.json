@@ -18,7 +18,8 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.4.0",
     "pg": "^8.11.5",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "web-push": "^3.6.7"
   },
   "engines": {
     "node": ">=18"
