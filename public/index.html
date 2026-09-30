@@ -1114,7 +1114,7 @@ document.getElementById('confirmShare').addEventListener('click', ()=>{
 
   const endsLabel = mins===0 ? "Jusqu'à désactivation" : `Jusqu'à ${new Date(Date.now()+mins*60000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
   updateShareUI(true, endsLabel);
-  toast('Partage de position démarré');
+  toast('Partage de position démarré'); yamKeepAwake(false);
 
   if(navigator.geolocation){
     let gotFirstFix = false; let lowMode = false;
@@ -1165,7 +1165,18 @@ function showGpsHelp(kind){
   document.getElementById("gpsRetry").onclick=function(){ d.remove(); var b=document.getElementById("shareBtn"); if(b){ b.click(); } };
 }
 
-function stopSharing(expired){
+var yamWake=null, yamSharing=false;
+async function yamKeepAwake(quiet){
+  yamSharing=true;
+  try{
+    if("wakeLock" in navigator){ yamWake=await navigator.wakeLock.request("screen"); yamWake.addEventListener("release",function(){ yamWake=null; }); if(quiet===false){ toast("Écran maintenu allumé pendant le partage. Gardez YAM ouvert."); } }
+    else if(quiet===false){ toast("Gardez YAM ouvert et l'écran allumé pour un suivi continu"); }
+  }catch(e){ if(quiet===false){ toast("Gardez YAM ouvert et l'écran allumé pour un suivi continu"); } }
+}
+function yamReleaseAwake(){ yamSharing=false; try{ if(yamWake){ yamWake.release(); yamWake=null; } }catch(e){} }
+document.addEventListener("visibilitychange",function(){ if(document.visibilityState==="visible"&&yamSharing&&yamWake===null){ yamKeepAwake(true); } });
+
+function stopSharing(expired){ yamReleaseAwake();
   if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
   if(simInterval){ clearInterval(simInterval); simInterval=null; }
   if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
