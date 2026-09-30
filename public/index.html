@@ -359,7 +359,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
     <select id="langSel" onchange="setLangYAM(this.value)" style="margin:8px 12px;padding:8px;border-radius:8px;background:#1b2747;color:#fff;border:1px solid #253157"><option value="fr">🌐 Français</option><option value="en">English</option><option value="ar">العربية</option><option value="es">Español</option><option value="pt">Português</option><option value="sw">Kiswahili</option><option value="ha">Hausa</option><option value="yo">Yorùbá</option><option value="bm">Bamanankan</option><option value="zh-CN">中文</option></select>
     <button class="navitem" data-view="superadmin" id="superAdminNav" style="display:none"><span class="ic">👑</span>Super Admin YAM</button>
     <div class="sidebar-foot">
-      <div class="avatar">FM</div>
+      <div class="avatar" id="avatarBtn" style="cursor:pointer;overflow:hidden">FM</div><input type="file" id="selfieInput" accept="image/*" capture="user" style="display:none">
       <div><div class="name">Fadiga Mamery</div><div class="role">Utilisateur</div></div>
     </div>
   </aside>
@@ -862,6 +862,21 @@ function connectSocket(){
   socket.on('share:declined', ()=>{ toast('Partage refusé'); loadShares(); });
   socket.on('share:stopped', ()=>{ toast('🛑 Un partage a été arrêté'); loadShares(); });
   socket.on('message:deleted', (d)=>{ document.querySelectorAll('.delmsg').forEach(e=>{ if(String(e.dataset.id)===String(d.id)){ e.closest('.bubble').remove(); } }); });
+document.addEventListener('click', (ev)=>{ const a=ev.target.closest ? ev.target.closest('#avatarBtn') : null; if(a!==null){ document.getElementById('selfieInput').click(); } });
+document.addEventListener('change', async (ev)=>{
+  if(ev.target.id!=='selfieInput') return;
+  const file=ev.target.files[0]; if(file===undefined) return;
+  try{
+    const fd=new FormData(); fd.append('file',file); fd.append('type','selfie');
+    const r=await fetch(API_BASE.replace(/\/$/,'')+'/api/media/upload',{method:'POST',headers:{Authorization:'Bearer '+AUTH_TOKEN},body:fd});
+    const d=await r.json(); if(r.ok===false) throw new Error(d.error||'Erreur upload');
+    const u=await api('/api/auth/selfie',{method:'PUT',body:JSON.stringify({url:d.url})});
+    localStorage.setItem('gt_user',JSON.stringify(u.user));
+    document.getElementById('avatarBtn').innerHTML='<img src="'+d.url+'" style="width:100%;height:100%;object-fit:cover">';
+    alert('Selfie enregistré');
+  }catch(e){ alert('Erreur: '+e.message); }
+  ev.target.value='';
+});
 if(window._delBound===undefined){ window._delBound=1; document.addEventListener('click', async (ev)=>{
   const t=ev.target.closest ? ev.target.closest('.delmsg') : null; if(t===null) return;
   const id=t.dataset.id; let all=false;
