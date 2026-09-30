@@ -140,6 +140,13 @@ router.delete('/messages/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+router.delete('/messages/:id/all', requireAuth, async (req, res) => {
+  const r = await db.query('DELETE FROM messages WHERE id=$1 AND sender_id=$2 RETURNING conversation_id', [req.params.id, req.userId]);
+  if (r.rows.length===0) return res.status(403).json({ error: 'Non autorisé' });
+  req.app.get('io').to('conv:'+r.rows[0].conversation_id).emit('message:deleted', { id: req.params.id });
+  res.json({ ok: true });
+});
+
 // POST /api/users/:id/block | /unblock
 router.post('/users/:id/block', requireAuth, async (req, res) => {
   await db.query('INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [req.userId, req.params.id]);
