@@ -64,4 +64,5 @@ initSockets(io);
 
 const PORT = process.env.PORT || 3000;
 require('./src/db').query("ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_kind_check").then(()=>require('./src/db').query("ALTER TABLE messages ADD CONSTRAINT messages_kind_check CHECK (kind IN ('text','position','system','image','video'))")).catch(e=>console.log('migration kind',e.message));
+require('./src/db').query('ALTER TABLE users ADD COLUMN IF NOT EXISTS selfie_verified_at TIMESTAMPTZ').catch(e=>console.log('migration selfie',e.message));
 server.listen(PORT, () => console.log(`GeoTrack backend en écoute sur le port ${PORT}`));

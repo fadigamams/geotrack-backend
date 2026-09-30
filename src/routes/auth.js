@@ -13,7 +13,7 @@ function signToken(userId) {
 }
 
 function publicUser(row) {
-  return { id: row.id, name: row.name, email: row.email, phone: row.phone, avatarUrl: row.avatar_url, isSuperAdmin: !!row.is_super_admin };
+  return { id: row.id, name: row.name, email: row.email, phone: row.phone, avatarUrl: row.avatar_url, isSuperAdmin: !!row.is_super_admin, selfieVerified: Boolean(row.selfie_verified_at) };
 }
 
 router.post('/register', async (req, res) => {
@@ -63,6 +63,13 @@ router.get('/me', requireAuth, async (req, res) => {
   const result = await db.query('SELECT id, name, email, phone, avatar_url, is_super_admin FROM users WHERE id = $1', [req.userId]);
   if (!result.rows[0]) return res.status(404).json({ error: 'Utilisateur introuvable' });
   res.json({ user: publicUser(result.rows[0]) });
+});
+
+router.put('/selfie', requireAuth, async (req, res) => {
+  const url = (req.body || {}).url;
+  if (typeof url !== 'string' || url.indexOf('https://res.cloudinary.com/') !== 0) return res.status(400).json({ error: 'URL invalide' });
+  const u = await db.query('UPDATE users SET avatar_url=$1, selfie_verified_at=now() WHERE id=$2 RETURNING *', [url, req.userId]);
+  res.json({ user: publicUser(u.rows[0]) });
 });
 
 module.exports = router;
