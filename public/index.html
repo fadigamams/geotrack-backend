@@ -1381,10 +1381,9 @@ async function loadDashboardTrips(alsoHistView){
 let zoneMapInit=false;
 function initZoneMap(){
   zoneMapInit=true;
-  const zm = L.map('zoneMap',{zoomControl:false,dragging:false,scrollWheelZoom:false}).setView([5.360,-4.0083],15);
+  const zm = L.map('zoneMap',{zoomControl:true}).setView([5.360,-4.0083],15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(zm);
-  L.circle([5.360,-4.0083],{radius:500,color:'#2f6fed',fillColor:'#2f6fed',fillOpacity:.15}).addTo(zm);
-  L.marker([5.360,-4.0083]).addTo(zm).bindTooltip('Maison · 500 m',{permanent:true,direction:'top'});
+  window.zoneMapObj=zm;
   setTimeout(()=>zm.invalidateSize(),150);
 }
 // ---- Flotte (véhicules) ----
@@ -1989,6 +1988,52 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
  }
  setInterval(function(){ load().catch(function(){}); },8000);
  document.addEventListener('click',function(){ setTimeout(function(){ load().catch(function(){}); },400); });
+}catch(e){} })();
+</script>
+<script>
+(function(){ try{
+ var layer=null, me=null, pos=null, zones=[], inside={}, fitted=false, lastZ=0;
+ function dist(a,b,c,d){ var p=Math.PI/180, x=(c-a)*p, y=(d-b)*p; var h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)*Math.sin(y/2); return 12742000*Math.asin(Math.sqrt(h)); }
+ function rad(z){ return Number(z.radiusM||z.radius_m||z.radius||0); }
+ function lngOf(z){ return Number(z.lng!==undefined?z.lng:z.lon); }
+ function say(t){ if(typeof toast==='function') toast(t); }
+ function status(){
+  var el=document.getElementById('zoneStatus'), m=document.getElementById('zoneMap'); if(m===null) return;
+  if(el===null){ el=document.createElement('div'); el.id='zoneStatus'; el.style.cssText='padding:10px 14px;font-weight:600'; m.parentNode.insertBefore(el,m); }
+  var names=zones.filter(function(z){ return inside[z.id]===true; }).map(function(z){ return z.name; });
+  el.textContent=pos===null?'📍 Recherche de votre position...':(names.length?'✅ Vous êtes dans : '+names.join(', '):'📍 Hors de toute zone');
+ }
+ function check(){
+  zones.forEach(function(z){
+   var r=rad(z), ins=pos!==null&&dist(pos[0],pos[1],Number(z.lat),lngOf(z))<=r;
+   if(inside[z.id]!==undefined&&inside[z.id]!==ins){ say((ins?'Entrée dans la zone ':'Sortie de la zone ')+z.name); }
+   inside[z.id]=ins;
+  });
+ }
+ function draw(){
+  var m=window.zoneMapObj; if(m===undefined||m===null) return;
+  if(layer===null){ layer=L.layerGroup().addTo(m); m.on('click',onTap); }
+  layer.clearLayers(); var b=[];
+  zones.forEach(function(z){ var la=Number(z.lat), ln=lngOf(z), r=rad(z); if(isNaN(la)||isNaN(ln)||r===0) return; var c=inside[z.id]===true?'#16a34a':'#2f6fed';
+   L.circle([la,ln],{radius:r,color:c,fillColor:c,fillOpacity:.15}).addTo(layer).bindTooltip(z.name+' · '+r+' m',{permanent:true,direction:'top'}); b.push([la,ln]); });
+  if(pos!==null){ if(me===null){ me=L.circleMarker(pos,{radius:8,color:'#fff',weight:3,fillColor:'#dc2626',fillOpacity:1}).addTo(m); } else { me.setLatLng(pos); } b.push(pos); }
+  if(fitted===false&&b.length>0){ fitted=true; m.invalidateSize(); if(b.length>1){ m.fitBounds(b,{padding:[40,40],maxZoom:16}); } else { m.setView(b[0],15); } }
+  status();
+ }
+ async function onTap(e){
+  var name=prompt('Nouvelle zone ici. Nom (ex: Maison, École) :'); if(name===null||name==='') return;
+  var r=parseInt(prompt('Rayon en mètres :','500')||'0',10); if(r===0||isNaN(r)) return;
+  try{ await api('/api/geofences',{method:'POST',body:JSON.stringify({name:name,lat:e.latlng.lat,lng:e.latlng.lng,radiusM:r})}); say('Zone créée'); await load(); if(typeof loadGeofences==='function') loadGeofences(); }catch(x){ say('Erreur : '+x.message); }
+ }
+ async function load(){ var d=await api('/api/geofences'); zones=d.geofences||[]; check(); draw(); }
+ var watching=false;
+ document.addEventListener('click',function(){ lastZ=0; });
+ setInterval(function(){
+  if(typeof AUTH_TOKEN==='undefined'||AUTH_TOKEN===''||AUTH_TOKEN===null) return;
+  if(window.zoneMapObj===undefined||window.zoneMapObj===null) return;
+  if(Date.now()-lastZ>10000){ lastZ=Date.now(); load().catch(function(){}); }
+  if(watching===false&&navigator.geolocation){ watching=true; navigator.geolocation.watchPosition(function(p){ pos=[p.coords.latitude,p.coords.longitude]; check(); draw(); },function(){},{enableHighAccuracy:true,maximumAge:5000}); }
+ },3000);
 }catch(e){} })();
 </script>
 </body>
