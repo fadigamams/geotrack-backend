@@ -861,7 +861,15 @@ function connectSocket(){
   socket.on('share:accepted', ()=>{ toast('✅ Partage accepté'); loadShares(); });
   socket.on('share:declined', ()=>{ toast('Partage refusé'); loadShares(); });
   socket.on('share:stopped', ()=>{ toast('🛑 Un partage a été arrêté'); loadShares(); });
-  socket.on('message:new', ({conversationId, message})=>{
+  socket.on('message:deleted', (d)=>{ document.querySelectorAll('.delmsg').forEach(e=>{ if(String(e.dataset.id)===String(d.id)){ e.closest('.bubble').remove(); } }); });
+if(window._delBound===undefined){ window._delBound=1; document.addEventListener('click', async (ev)=>{
+  const t=ev.target.closest ? ev.target.closest('.delmsg') : null; if(t===null) return;
+  const id=t.dataset.id; let all=false;
+  if(t.dataset.mine==='1'){ all=confirm('Supprimer pour tous ?'); if(all===false && confirm('Supprimer pour moi seulement ?')===false) return; }
+  else if(confirm('Supprimer pour moi ?')===false) return;
+  try{ await api('/api/messages/'+id+(all?'/all':''), {method:'DELETE'}); t.closest('.bubble').remove(); }catch(e){ alert('Erreur: '+e.message); }
+}); }
+socket.on('message:new', ({conversationId, message})=>{
     if(conversationId===activeConvId){
       const body = document.getElementById('chatBody');
       body.insertAdjacentHTML('beforeend', renderBubble(message));
@@ -1781,7 +1789,7 @@ function renderBubble(m){
     } else {
       inner = m.body.replace(/</g,'&lt;');
     }
-    return `<div class="bubble ${mine?'mine':'theirs'}">${inner}<span class="time">${time}</span></div>`;
+    return `<div class="bubble ${mine?'mine':'theirs'}">${inner}<span class="time">${time}</span><span class="delmsg" data-id="${m.id}" data-mine="${mine?1:0}" style="cursor:pointer;margin-left:10px">🗑</span></div>`;
 }
 
 document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
