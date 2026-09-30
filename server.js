@@ -17,6 +17,7 @@ const vehiclesRoutes = require('./src/routes/vehicles');
 const adminRoutes = require('./src/routes/admin');
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.trim());
