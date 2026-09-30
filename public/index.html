@@ -1789,7 +1789,7 @@ function renderBubble(m){
     } else {
       inner = m.body.replace(/</g,'&lt;');
     }
-    return `<div class="bubble ${mine?'mine':'theirs'}">${inner}<span class="time">${time}</span><span class="delmsg" data-id="${m.id}" data-mine="${mine?1:0}" style="cursor:pointer;margin-left:10px">🗑</span></div>`;
+    return `<div class="bubble ${mine?'mine':'theirs'}"><span class="delmsg" data-id="${m.id}" data-mine="${mine?1:0}" style="cursor:pointer;display:block;text-align:right;font-size:18px">🗑</span>${inner}<span class="time">${time}</span></div>`;
 }
 
 document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
