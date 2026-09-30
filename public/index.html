@@ -931,21 +931,40 @@ function fetchPlace(id,la,ln){
     var a=yamArgs[id]; if(a&&yamFollowed[id]){ showOther(id,a.la,a.ln,a.acc,a.when,false); }
   });
 }
+function ageMin(w){ return (Date.now()-new Date(w||Date.now()).getTime())/60000; }
+function ageText(w){
+  var m=Math.max(0,Math.round(ageMin(w)));
+  if(m<1){ return "à l'instant"; }
+  if(m<60){ return "il y a "+m+" min"; }
+  if(m<1440){ return "il y a "+Math.round(m/60)+" h"; }
+  return "il y a "+Math.round(m/1440)+" j";
+}
+function refreshFollowed(){
+  Object.keys(yamFollowed).forEach(function(id){
+    api("/api/positions/"+id).then(function(p){ showOther(id,p.lat,p.lng,p.accuracy,p.updatedAt,false); toast("Position actualisée : "+yamFollowed[id]); }).catch(function(){ toast("Aucune position disponible pour "+yamFollowed[id]); });
+  });
+}
+function ensureRefreshBtn(){
+  if(document.getElementById("refreshBtn")){ return; }
+  var b=document.createElement("button"); b.id="refreshBtn"; b.textContent="🔄"; b.onclick=refreshFollowed;
+  b.style.cssText="position:fixed;right:14px;bottom:150px;z-index:9998;border:0;border-radius:50%;width:48px;height:48px;font-size:20px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.3)";
+  document.body.appendChild(b);
+}
 function showOther(id,la,ln,acc,when,center){
-  yamArgs[id]={la:la,ln:ln,acc:acc,when:when}; fetchPlace(id,la,ln); var pl=placeText(id);
-  if(!document.getElementById("yamStyle")){ var st=document.createElement("style"); st.id="yamStyle"; st.textContent="@keyframes yamPulse{0%{transform:scale(.6);opacity:1}100%{transform:scale(2.2);opacity:0}}"; document.head.appendChild(st); }
+  yamArgs[id]={la:la,ln:ln,acc:acc,when:when}; fetchPlace(id,la,ln); var pl=placeText(id); ensureRefreshBtn();
+  if(document.getElementById("yamStyle")===null){ var st=document.createElement("style"); st.id="yamStyle"; st.textContent="@keyframes yamPulse{0%{transform:scale(.6);opacity:1}100%{transform:scale(2.2);opacity:0}}"; document.head.appendChild(st); }
   var t=new Date(when||Date.now()).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-  var nm=fEsc(yamFollowed[id]||"Contact");
+  var nm=fEsc(yamFollowed[id]||"Contact"), ag=ageText(when), old=ageMin(when)>5, col=old?"#f59e0b":"#e11d48";
   var me=(typeof lat==="number"&&typeof lng==="number");
   var dist=""; if(me){ var d=distMeters(lat,lng,la,ln); dist=d<1000?Math.round(d)+" m":(d/1000).toFixed(1)+" km"; }
-  var html="<b>"+nm+"</b><br>"+(dist?"Distance : "+dist+"<br>":"")+(pl?pl+"<br>":"")+"Mis à jour : "+t+"<br>Précision : "+Math.round(acc||0)+" m";
-  var lab=nm+(dist?" · "+dist:"");
+  var html="<b>"+nm+"</b><br>"+(dist?"Distance : "+dist+"<br>":"")+(pl?pl+"<br>":"")+"Mis à jour : "+t+" ("+ag+")"+(old?"<br><b>Position ancienne</b> : le contact doit ouvrir YAM et activer le partage.":"")+"<br>Précision : "+Math.round(acc||0)+" m";
+  var lab=nm+(dist?" · "+dist:"")+(old?" · "+ag:"");
   var pb=pl?"<div style='position:absolute;left:16px;top:10px;white-space:nowrap;background:#1e293b;color:#fff;font-size:12px;padding:3px 8px;border-radius:10px'>"+pl+"</div>":"";
-  var ic=L.divIcon({className:"",iconSize:[0,0],html:"<div style='position:relative'><div style='position:absolute;left:-16px;top:-16px;width:32px;height:32px;border-radius:50%;background:rgba(225,29,72,.4);animation:yamPulse 1.6s infinite'></div><div style='position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:#e11d48;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.6)'></div><div style='position:absolute;left:16px;top:-16px;white-space:nowrap;background:#e11d48;color:#fff;font-weight:600;font-size:12px;padding:3px 8px;border-radius:10px'>"+lab+"</div>"+pb+"</div>"});
+  var ic=L.divIcon({className:"",iconSize:[0,0],html:"<div style='position:relative'><div style='position:absolute;left:-16px;top:-16px;width:32px;height:32px;border-radius:50%;background:"+col+";opacity:.4;animation:yamPulse 1.6s infinite'></div><div style='position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:"+col+";border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.6)'></div><div style='position:absolute;left:16px;top:-16px;white-space:nowrap;background:"+col+";color:#fff;font-weight:600;font-size:12px;padding:3px 8px;border-radius:10px'>"+lab+"</div>"+pb+"</div>"});
   if(yamOthers[id]){ map.removeLayer(yamOthers[id]); }
   var g=L.layerGroup();
-  L.circle([la,ln],{radius:Math.max(acc||0,15),color:"#e11d48",weight:1,fillColor:"#e11d48",fillOpacity:0.12}).addTo(g);
-  if(me){ L.polyline([[lat,lng],[la,ln]],{color:"#e11d48",weight:3,dashArray:"8 8"}).addTo(g); }
+  L.circle([la,ln],{radius:Math.max(acc||0,15),color:col,weight:1,fillColor:col,fillOpacity:0.12}).addTo(g);
+  if(me){ L.polyline([[lat,lng],[la,ln]],{color:col,weight:3,dashArray:"8 8"}).addTo(g); }
   L.marker([la,ln],{icon:ic,zIndexOffset:1000}).addTo(g).bindPopup(html);
   g.addTo(map); yamOthers[id]=g;
   if(center){ if(me){ map.fitBounds([[lat,lng],[la,ln]],{padding:[60,60],maxZoom:17}); } else { map.setView([la,ln],16); } }
