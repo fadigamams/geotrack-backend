@@ -2094,5 +2094,38 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
  setTimeout(refresh,4000);
 }catch(e){} })();
 </script>
+<script>
+(function(){
+var C=window.Capacitor;
+if(typeof C==='undefined'||typeof C.isNativePlatform!=='function'||C.isNativePlatform()===false){return;}
+var BG=C.registerPlugin('BackgroundGeolocation');
+var bgId=null, busy=false;
+var G=navigator.geolocation;
+var orig=G.watchPosition.bind(G);
+var origClear=G.clearWatch.bind(G);
+function stopBg(){
+  if(bgId!==null){ BG.removeWatcher({id:bgId}); bgId=null; }
+}
+function startBg(){
+  if(bgId===null&&busy===false){
+    busy=true;
+    BG.addWatcher({backgroundTitle:'YAM',backgroundMessage:'Partage de position actif',requestPermissions:true,stale:false,distanceFilter:10},function(loc,err){
+      if(err){ if(err.code==='NOT_AUTHORIZED'){ BG.openSettings(); } return; }
+      if(document.hidden===false){ return; }
+      sendBg(loc);
+    }).then(function(id){ bgId=id; busy=false; }).catch(function(){ busy=false; });
+  }
+}
+function sendBg(l){
+  if(typeof api==='undefined'||typeof API_BASE==='undefined'||typeof AUTH_TOKEN==='undefined'){ return; }
+  if(API_BASE&&AUTH_TOKEN){
+    api('/api/positions',{method:'POST',body:JSON.stringify({lat:l.latitude,lng:l.longitude,accuracy:l.accuracy,speed:l.speed,heading:l.bearing,isDemo:false})}).catch(function(){});
+  }
+}
+G.watchPosition=function(a,b,c){ startBg(); return orig(a,b,c); };
+G.clearWatch=function(id){ stopBg(); return origClear(id); };
+})();
+
+</script>
 </body>
 </html>
