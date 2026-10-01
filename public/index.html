@@ -2098,7 +2098,7 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
 (function(){
 var C=window.Capacitor;
 if(typeof C==='undefined'||typeof C.isNativePlatform!=='function'||C.isNativePlatform()===false){return;}
-var BG=C.registerPlugin('BackgroundGeolocation');
+var BG=C.registerPlugin('BackgroundGeolocation');if(typeof toast==='function'){toast('GPS fond: plugin pret');}
 var bgId=null, busy=false;
 var G=navigator.geolocation;
 var orig=G.watchPosition.bind(G);
@@ -2106,14 +2106,14 @@ var origClear=G.clearWatch.bind(G);
 function stopBg(){
   if(bgId!==null){ BG.removeWatcher({id:bgId}); bgId=null; }
 }
-function startBg(){
+function startBg(){if(typeof toast==='function'){toast('GPS fond: demarrage');}
   if(bgId===null&&busy===false){
     busy=true;
     BG.addWatcher({backgroundTitle:'YAM',backgroundMessage:'Partage de position actif',requestPermissions:true,stale:false,distanceFilter:10},function(loc,err){
       if(err){ if(err.code==='NOT_AUTHORIZED'){ BG.openSettings(); } return; }
       if(document.hidden===false){ return; }
       sendBg(loc);
-    }).then(function(id){ bgId=id; busy=false; }).catch(function(){ busy=false; });
+    }).then(function(id){ bgId=id; busy=false; }).catch(function(e){ busy=false; toast('GPS fond erreur: '+(e&&e.message?e.message:e)); });
   }
 }
 function sendBg(l){
