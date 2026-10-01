@@ -1,0 +1,7 @@
+{
+  "appId": "com.yam.youandme",
+  "appName": "YAM",
+  "webDir": "www",
+  "server": { "url": "https://geotrack-backend-gdil.onrender.com", "androidScheme": "https" },
+  "android": { "useLegacyBridge": true }
+}
