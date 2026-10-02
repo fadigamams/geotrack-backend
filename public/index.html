@@ -2096,7 +2096,7 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
 </script>
 <script>
 (function(){
-var C=window.Capacitor;var dv=document.createElement('div');dv.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:2px';dv.textContent='V4 CAP:'+typeof C+' native:'+(C&&C.isNativePlatform?C.isNativePlatform():'na')+' plug:'+(C&&C.isPluginAvailable?C.isPluginAvailable('BackgroundGeolocation'):'na');document.body.appendChild(dv);setTimeout(function(){dv.remove();},600000);
+var C=window.Capacitor;var dv=document.createElement('div');dv.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:2px';dv.textContent='V5 CAP:'+typeof C+' native:'+(C&&C.isNativePlatform?C.isNativePlatform():'na')+' plug:'+(C&&C.isPluginAvailable?C.isPluginAvailable('BackgroundGeolocation'):'na');document.body.appendChild(dv);window.addEventListener('error',function(e){dv.textContent+=' ERR:'+e.message;});setTimeout(function(){dv.remove();},600000);
 if(typeof C==='undefined'||typeof C.isNativePlatform!=='function'||C.isNativePlatform()===false){return;}
 var BG=C.registerPlugin('BackgroundGeolocation');function dbgLog(m){var b=document.getElementById('dbgbox');if(b===null){b=document.createElement('div');b.id='dbgbox';b.style.cssText='position:fixed;top:24px;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:4px';b.onclick=function(){b.remove();};document.body.appendChild(b);}b.innerHTML+=m+'<br>';}dbgLog('GPS fond: plugin pret');
 var bgId=null, busy=false;
@@ -2122,8 +2122,8 @@ function sendBg(l){
     api('/api/positions',{method:'POST',body:JSON.stringify({lat:l.latitude,lng:l.longitude,accuracy:l.accuracy,speed:l.speed,heading:l.bearing,isDemo:false})}).catch(function(){});
   }
 }
-G.watchPosition=function(a,b,c){ startBg(); return orig(a,b,c); };
-G.clearWatch=function(id){ stopBg(); return origClear(id); };
+G.watchPosition=function(a,b,c){ dv.textContent+=' WP'; startBg(); return orig(a,b,c); };
+dv.textContent+=' OV'; G.clearWatch=function(id){ stopBg(); return origClear(id); };
 })();
 
 </script>
