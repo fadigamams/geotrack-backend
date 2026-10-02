@@ -2096,7 +2096,7 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
 </script>
 <script>
 (function(){
-var C=window.Capacitor;var dv=document.createElement('div');dv.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:2px;word-break:break-all;white-space:normal;max-height:40vh;overflow:auto';dv.textContent='V7 CAP:'+typeof C+' native:'+(C&&C.isNativePlatform?C.isNativePlatform():'na')+' plug:'+(C&&C.isPluginAvailable?C.isPluginAvailable('BackgroundGeolocation'):'na');document.body.appendChild(dv);window.addEventListener('error',function(e){dv.textContent+=' ERR:'+e.message+' L'+e.lineno+' C'+e.colno;});setTimeout(function(){dv.remove();},600000);
+var C=window.Capacitor;var dv=document.createElement('div');dv.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:2px;word-break:break-all;white-space:normal;max-height:40vh;overflow:auto';dv.textContent='V8 CAP:'+typeof C+' native:'+(C&&C.isNativePlatform?C.isNativePlatform():'na')+' plug:'+(C&&C.isPluginAvailable?C.isPluginAvailable('BackgroundGeolocation'):'na');document.body.appendChild(dv);window.addEventListener('error',function(e){dv.textContent+=' ERR:'+e.message+' L'+e.lineno+' C'+e.colno;});setTimeout(function(){dv.remove();},600000);
 if(typeof C==='undefined'||typeof C.isNativePlatform!=='function'||C.isNativePlatform()===false){return;}
 var BG=(typeof C.registerPlugin==='function')?C.registerPlugin('BackgroundGeolocation'):C.Plugins.BackgroundGeolocation;function dbgLog(m){var b=document.getElementById('dbgbox');if(b===null){b=document.createElement('div');b.id='dbgbox';b.style.cssText='position:fixed;top:24px;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:4px';b.onclick=function(){b.remove();};document.body.appendChild(b);}b.innerHTML+=m+'<br>';}dbgLog('GPS fond: plugin pret');
 var bgId=null, busy=false;
@@ -2109,11 +2109,11 @@ function stopBg(){
 function startBg(){dbgLog('GPS fond: demarrage');
   if(bgId===null&&busy===false){
     busy=true;
-    BG.addWatcher({backgroundTitle:'YAM',backgroundMessage:'Partage de position actif',requestPermissions:true,stale:false,distanceFilter:10},function(loc,err){
+    Promise.resolve(BG.addWatcher({backgroundTitle:'YAM',backgroundMessage:'Partage de position actif',requestPermissions:true,stale:false,distanceFilter:10},function(loc,err){
       if(err){ dbgLog('GPS fond err: '+(err.code||err.message)); if(err.code==='NOT_AUTHORIZED'){ BG.openSettings(); } return; }
       if(document.hidden===false){ return; }
       sendBg(loc);
-    }).then(function(id){ bgId=id; busy=false; }).catch(function(e){ busy=false; dbgLog('GPS fond erreur: '+(e&&e.message?e.message:e)); });
+    })).then(function(id){ bgId=id; busy=false; dbgLog('GPS fond: watcher '+id); }).catch(function(e){ busy=false; dbgLog('GPS fond erreur: '+(e&&e.message?e.message:e)); });
   }
 }
 function sendBg(l){
