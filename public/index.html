@@ -2098,7 +2098,7 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
 (function(){
 var C=window.Capacitor;var dv=document.createElement('div');dv.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:2px';dv.textContent='CAP:'+typeof C+' native:'+(C&&C.isNativePlatform?C.isNativePlatform():'na')+' plug:'+(C&&C.isPluginAvailable?C.isPluginAvailable('BackgroundGeolocation'):'na');document.body.appendChild(dv);setTimeout(function(){dv.remove();},60000);
 if(typeof C==='undefined'||typeof C.isNativePlatform!=='function'||C.isNativePlatform()===false){return;}
-var BG=C.registerPlugin('BackgroundGeolocation');if(typeof toast==='function'){toast('GPS fond: plugin pret');}
+var BG=C.registerPlugin('BackgroundGeolocation');function dbgLog(m){var b=document.getElementById('dbgbox');if(b===null){b=document.createElement('div');b.id='dbgbox';b.style.cssText='position:fixed;bottom:70px;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:4px';b.onclick=function(){b.remove();};document.body.appendChild(b);}b.innerHTML+=m+'<br>';}if(typeof toast==='function'){dbgLog('GPS fond: plugin pret');}
 var bgId=null, busy=false;
 var G=navigator.geolocation;
 var orig=G.watchPosition.bind(G);
@@ -2106,14 +2106,14 @@ var origClear=G.clearWatch.bind(G);
 function stopBg(){
   if(bgId!==null){ BG.removeWatcher({id:bgId}); bgId=null; }
 }
-function startBg(){if(typeof toast==='function'){toast('GPS fond: demarrage');}
+function startBg(){if(typeof toast==='function'){dbgLog('GPS fond: demarrage');}
   if(bgId===null&&busy===false){
     busy=true;
     BG.addWatcher({backgroundTitle:'YAM',backgroundMessage:'Partage de position actif',requestPermissions:true,stale:false,distanceFilter:10},function(loc,err){
       if(err){ if(err.code==='NOT_AUTHORIZED'){ BG.openSettings(); } return; }
       if(document.hidden===false){ return; }
       sendBg(loc);
-    }).then(function(id){ bgId=id; busy=false; }).catch(function(e){ busy=false; toast('GPS fond erreur: '+(e&&e.message?e.message:e)); });
+    }).then(function(id){ bgId=id; busy=false; }).catch(function(e){ busy=false; dbgLog('GPS fond erreur: '+(e&&e.message?e.message:e)); });
   }
 }
 function sendBg(l){
