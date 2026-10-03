@@ -2151,15 +2151,15 @@ var r=await fetch(API_BASE.replace(/\/$/,'')+'/api/media/upload',{method:'POST',
 var d=await r.json(); if(r.ok===false){ throw new Error(d.error||'Erreur upload'); }
 var c=await api('/api/contacts');
 var list=Array.isArray(c)?c:(c.contacts||[]);
-var n=0;
+var n=0; var lastErr='';
 for(var i=0;i<list.length;i++){
 try{
 var cv=await api('/api/conversations',{method:'POST',body:JSON.stringify({withUserId:list[i].userId})});
 await api('/api/conversations/'+cv.conversationId+'/messages',{method:'POST',body:JSON.stringify({body:'',kind:'image',meta:{url:d.url}})});
 n=n+1;
-}catch(e2){}
+}catch(e2){ lastErr=e2.message; }
 }
-alert('Selfie envoye a '+n+' contact(s)');
+alert('Selfie envoye a '+n+' sur '+list.length+' contact(s). '+lastErr);
 }catch(e){ alert('Erreur: '+e.message); }
 btn.textContent='🤳'; inp.value='';
 };
