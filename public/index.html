@@ -2192,5 +2192,53 @@ setInterval(function(){ if(shown()){ load(); } },20000);
 load();
 })();
 </script>
+<script>
+(function(){
+function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,function(m){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]; }); }
+function hhmm(d){ var x=new Date(d); return ("0"+x.getHours()).slice(-2)+":"+("0"+x.getMinutes()).slice(-2); }
+function box(){ var h=document.querySelectorAll("h3"); for(var i=0;i<h.length;i++){ if(h[i].textContent.indexOf("Qui peut voir")>=0){ return h[i].parentNode; } } return null; }
+function addBtn(){
+  var card=box(); if(card===null||document.getElementById("shareNewBtn")){ return; }
+  var b=document.createElement("button"); b.id="shareNewBtn"; b.className="btn share";
+  b.style.margin="12px"; b.textContent="Autoriser quelqu un"; card.appendChild(b);
+}
+async function loadShares(){
+  var card=box(); if(card===null){ return; }
+  var list=card.querySelector(".list"); if(list===null){ return; }
+  try{
+    var r=await api("/api/shares/mine");
+    var a=(r.shares||[]).filter(function(s){ return s.status==="active"||s.status==="pending"; });
+    list.innerHTML=a.map(function(s){
+      var t=s.status==="pending"?"Invitation en attente":(s.expires_at?"Autorise jusqu a "+hhmm(s.expires_at):"Autorise");
+      var i=esc((s.viewer_name||"?").charAt(0).toUpperCase());
+      return '<div class="row-item"><div class="av">'+i+'</div><div class="info"><div class="n">'+esc(s.viewer_name)+'</div><div class="t">'+t+'</div></div><button class="linkbtn" data-stop="'+s.id+'">Arreter</button></div>';
+    }).join("")||'<div style="padding:16px;color:var(--sub);font-size:13px">Personne ne voit votre position.</div>';
+    addBtn();
+  }catch(e){}
+}
+document.addEventListener("click",async function(e){
+  var st=e.target.closest("[data-stop]");
+  if(st!==null){
+    try{ await api("/api/shares/"+st.dataset.stop+"/stop",{method:"POST"}); toast("Partage arrete"); }catch(x){ toast("Erreur : "+x.message); }
+    loadShares(); return;
+  }
+  if(e.target.id==="shareNewBtn"){
+    var id=prompt("Email ou telephone de la personne (compte YAM)");
+    if(id===null||id.trim()===""){ return; }
+    try{ await api("/api/shares",{method:"POST",body:JSON.stringify({identifier:id.trim(),durationMinutes:120})}); toast("Invitation envoyee"); }catch(x){ toast("Erreur : "+x.message); }
+    loadShares(); return;
+  }
+  if(e.target.closest("[data-view=repertoire]")){ setTimeout(loadShares,300); }
+});
+document.getElementById("repList").addEventListener("click",function(e){
+  var b=e.target.closest("[data-act=view]"); if(b===null){ return; }
+  var c=contacts[parseInt(b.dataset.i,10)]; if(c===undefined||c.userId===undefined){ return; }
+  e.stopImmediatePropagation();
+  followUser(c.userId,c.name);
+},true);
+setInterval(function(){ var v=document.getElementById("view-repertoire"); if(v!==null&&v.offsetParent!==null){ loadShares(); } },20000);
+loadShares();
+})();
+</script>
 </body>
 </html>
