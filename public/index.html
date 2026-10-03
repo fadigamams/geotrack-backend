@@ -2165,5 +2165,32 @@ btn.textContent='🤳'; inp.value='';
 };
 })();
 </script>
+<script>
+(function(){
+var MAP={shared:"on",pending:"pending",stopped:"stopped"};
+var META={on:"Partage actif",pending:"En attente d accord",stopped:"Aucun partage actif"};
+function hhmm(d){ var x=new Date(d); return ("0"+x.getHours()).slice(-2)+":"+("0"+x.getMinutes()).slice(-2); }
+function shown(){ var v=document.getElementById("view-repertoire"); if(v===null) return false; return v.offsetParent===null?false:true; }
+async function load(){
+  try{
+    var r=await api("/api/contacts");
+    var l=Array.isArray(r)?r:(r.contacts||[]);
+    contacts.length=0;
+    l.forEach(function(c){
+      var st=MAP[c.status]||"none";
+      var m=META[st]||"";
+      if(st==="on"&&c.expiresAt){ m="Jusqu a "+hhmm(c.expiresAt); }
+      contacts.push({userId:c.userId,name:c.name,phone:c.phone||"",groups:c.isFavorite?["favoris"]:[],status:st,meta:m});
+    });
+    renderContacts();
+  }catch(e){}
+}
+document.addEventListener("click",function(e){
+  if(e.target.closest("[data-view=repertoire]")||e.target.closest("#syncBtn")){ setTimeout(load,300); }
+});
+setInterval(function(){ if(shown()){ load(); } },20000);
+load();
+})();
+</script>
 </body>
 </html>
