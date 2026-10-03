@@ -2252,8 +2252,8 @@ function variants(p){
 }
 async function pick(){
   var out=[];
-  if(navigator.contacts&&navigator.contacts.select){
-    var r=await navigator.contacts.select(["name","tel"],{multiple:true});
+  var r=null; if(navigator.contacts&&navigator.contacts.select){ try{ r=await navigator.contacts.select(["name","tel"],{multiple:true}); }catch(z){ r=null; } } if(r!==null){
+    
     r.forEach(function(c){ (c.tel||[]).forEach(function(t){ out.push({name:(c.name&&c.name[0])||"",tel:t}); }); });
     return out;
   }
