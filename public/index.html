@@ -470,7 +470,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       <h2 class="hello">🛣️ Historique</h2>
       <p class="sub">Déplacements enregistrés uniquement lorsque le partage était actif.</p>
       <div class="card">
-        <h3>15 sept. 2025</h3>
+        <h3 id="histDate"></h3>
         <div class="list">
           <div id="histList"><div style="padding:16px;color:var(--sub);font-size:13px">Aucun déplacement enregistré aujourd'hui.</div></div>
         </div>
@@ -2127,5 +2127,6 @@ dv.textContent+=' OV'; G.clearWatch=function(id){ stopBg(); return origClear(id)
 })();
 
 </script>
+<script>(function(){var e=document.getElementById('histDate');if(e){e.textContent=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});}})();</script>
 </body>
 </html>
