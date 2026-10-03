@@ -2240,5 +2240,58 @@ setInterval(function(){ var v=document.getElementById("view-repertoire"); if(v!=
 loadShares();
 })();
 </script>
+<script>
+(function(){
+function variants(p){
+  var d=String(p||"").replace(/[^0-9]/g,"");
+  if(d.indexOf("00")===0){ d=d.slice(2); }
+  var loc=d;
+  if(d.indexOf("225")===0&&d.length>=11){ loc=d.slice(3); }
+  var o={}; o["+225"+loc]=1; o[loc]=1; o["225"+loc]=1;
+  return Object.keys(o);
+}
+async function pick(){
+  var out=[];
+  if(navigator.contacts&&navigator.contacts.select){
+    var r=await navigator.contacts.select(["name","tel"],{multiple:true});
+    r.forEach(function(c){ (c.tel||[]).forEach(function(t){ out.push({name:(c.name&&c.name[0])||"",tel:t}); }); });
+    return out;
+  }
+  var s=prompt("Numeros a verifier, separes par une virgule");
+  if(s===null){ return null; }
+  s.split(",").forEach(function(t){ if(t.trim().length>0){ out.push({name:"",tel:t.trim()}); } });
+  return out;
+}
+var busy=false;
+document.addEventListener("click",async function(e){
+  var b=e.target.closest("#syncBtn"); if(b===null){ return; }
+  e.stopImmediatePropagation(); e.preventDefault();
+  if(busy){ return; }
+  busy=true;
+  try{
+    var list=await pick();
+    if(list===null||list.length===0){ busy=false; return; }
+    toast("Verification en cours...");
+    var seen={}, added=0;
+    for(var k=0;k<list.length;k+=100){
+      var part=list.slice(k,k+100), phones=[], owner={};
+      part.forEach(function(c){ variants(c.tel).forEach(function(v){ phones.push(v); owner[v]=c; }); });
+      var res=await api("/api/contacts/match",{method:"POST",body:JSON.stringify({phones:phones})});
+      var ms=res.matches||res||[];
+      for(var i=0;i<ms.length;i++){
+        var m=ms[i];
+        if(m.matched!==true||seen[m.userId]){ continue; }
+        seen[m.userId]=1;
+        var c2=owner[m.phone]||{};
+        try{ await api("/api/contacts",{method:"POST",body:JSON.stringify({userId:m.userId,label:c2.name||m.name})}); added++; }catch(x){}
+      }
+    }
+    toast(added+" contact(s) YAM trouve(s)");
+    var nv=document.querySelector("[data-view=repertoire]"); if(nv!==null){ nv.click(); }
+  }catch(err){ toast("Erreur : "+err.message); }
+  busy=false;
+},true);
+})();
+</script>
 </body>
 </html>
