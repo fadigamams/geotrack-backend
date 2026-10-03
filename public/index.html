@@ -2135,14 +2135,14 @@ inp.type='file'; inp.accept='image/*';
 inp.setAttribute('capture','user'); inp.style.display='none';
 document.body.appendChild(inp);
 var btn=document.createElement('button');
-btn.textContent='Selfie';
-btn.style.cssText='position:fixed;left:12px;bottom:80px;z-index:9000;padding:10px 14px;border-radius:20px;border:0;background:#2563eb;color:#fff;font-weight:600';
+btn.textContent='🤳';
+btn.style.cssText='position:fixed;left:6px;bottom:14px;z-index:9000;width:44px;height:44px;border-radius:50%;border:0;background:#2563eb;color:#fff;font-size:20px;opacity:.85;padding:0';
 btn.onclick=function(){ inp.click(); };
 document.body.appendChild(btn);
 inp.onchange=async function(){
 var f=inp.files[0]; if(f===undefined){ return; }
 if(confirm('Envoyer ce selfie a vos contacts ?')===false){ inp.value=''; return; }
-btn.textContent='Envoi...';
+btn.textContent='...';
 try{
 var fd=new FormData(); fd.append('file',f); fd.append('type','selfie');
 var r=await fetch(API_BASE.replace(/\/$/,'')+'/api/media/upload',{method:'POST',headers:{Authorization:'Bearer '+AUTH_TOKEN},body:fd});
@@ -2159,7 +2159,7 @@ n=n+1;
 }
 alert('Selfie envoye a '+n+' contact(s)');
 }catch(e){ alert('Erreur: '+e.message); }
-btn.textContent='Selfie'; inp.value='';
+btn.textContent='🤳'; inp.value='';
 };
 })();
 </script>
