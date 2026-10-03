@@ -2159,7 +2159,7 @@ await api('/api/conversations/'+cv.conversationId+'/messages',{method:'POST',bod
 n=n+1;
 }catch(e2){ lastErr=e2.message; }
 }
-alert('Selfie envoye a '+n+' sur '+list.length+' contact(s). '+lastErr);
+alert('Selfie envoye a '+n+' sur '+list.length+' contact(s).');
 }catch(e){ alert('Erreur: '+e.message); }
 btn.textContent='🤳'; inp.value='';
 };
