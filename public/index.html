@@ -2136,8 +2136,10 @@ inp.setAttribute('capture','user'); inp.style.display='none';
 document.body.appendChild(inp);
 var btn=document.createElement('button');
 btn.textContent='🤳';
-btn.style.cssText='position:fixed;left:6px;bottom:14px;z-index:9000;width:44px;height:44px;border-radius:50%;border:0;background:#2563eb;color:#fff;font-size:20px;opacity:.85;padding:0';
-btn.onclick=function(){ inp.click(); };
+btn.style.cssText='position:fixed;right:4px;top:60%;z-index:9000;width:36px;height:36px;border-radius:50%;border:0;background:#2563eb;color:#fff;font-size:16px;opacity:.6;padding:0';
+var moved=false;
+btn.addEventListener('touchmove',function(e){var t=e.touches[0];moved=true;btn.style.left=(t.clientX-18)+'px';btn.style.top=(t.clientY-18)+'px';btn.style.right='auto';btn.style.bottom='auto';e.preventDefault();},{passive:false});
+btn.onclick=function(){ if(moved){ moved=false; return; } inp.click(); };
 document.body.appendChild(btn);
 inp.onchange=async function(){
 var f=inp.files[0]; if(f===undefined){ return; }
