@@ -2150,11 +2150,11 @@ var fd=new FormData(); fd.append('file',f); fd.append('type','selfie');
 var r=await fetch(API_BASE.replace(/\/$/,'')+'/api/media/upload',{method:'POST',headers:{Authorization:'Bearer '+AUTH_TOKEN},body:fd});
 var d=await r.json(); if(r.ok===false){ throw new Error(d.error||'Erreur upload'); }
 var c=await api('/api/contacts');
-var list=Array.isArray(c)?c:(c.contacts||[]);
+var list=(typeof yamFollowList!=='undefined')?yamFollowList:[];
 var n=0; var lastErr='';
 for(var i=0;i<list.length;i++){
 try{
-var cv=await api('/api/conversations',{method:'POST',body:JSON.stringify({withUserId:list[i].userId})});
+var cv=await api('/api/conversations',{method:'POST',body:JSON.stringify({withUserId:(list[i].owner_id||list[i].userId)})});
 await api('/api/conversations/'+cv.conversationId+'/messages',{method:'POST',body:JSON.stringify({body:'',kind:'image',meta:{url:d.url}})});
 n=n+1;
 }catch(e2){ lastErr=e2.message; }
