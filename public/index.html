@@ -704,6 +704,8 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
       <input id="apiBaseInput" placeholder="https://mon-service.onrender.com" style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
       <label id="nameLbl" style="font-size:11.5px;font-weight:700;color:var(--sub);display:none">Nom complet</label>
       <input id="authName" placeholder="Fadiga Mamery" style="display:none;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+      <label id="phoneLbl" style="font-size:11.5px;font-weight:700;color:var(--sub);display:none">Telephone</label>
+      <input id="authPhone" type="tel" placeholder="+225 07 00 00 00 00" style="display:none;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
       <label style="font-size:11.5px;font-weight:700;color:var(--sub)">Email</label>
       <input id="authEmail" type="email" placeholder="vous@exemple.com" style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px">
       <label style="font-size:11.5px;font-weight:700;color:var(--sub)">Mot de passe</label>
@@ -1033,7 +1035,7 @@ document.getElementById('authSwitch').addEventListener('click', ()=>{
   document.getElementById('authSubmit').textContent = authMode==='login' ? 'Se connecter' : 'Créer mon compte';
   document.getElementById('authSwitch').textContent = authMode==='login' ? 'Pas de compte ? Créer un compte' : 'Déjà un compte ? Se connecter';
   document.getElementById('nameLbl').style.display = authMode==='register' ? 'block':'none';
-  document.getElementById('authName').style.display = authMode==='register' ? 'block':'none';
+  document.getElementById('authName').style.display = authMode==='register' ? 'block':'none'; document.getElementById('phoneLbl').style.display = authMode==='register' ? 'block':'none'; document.getElementById('authPhone').style.display = authMode==='register' ? 'block':'none';
 });
 document.getElementById('authSubmit').addEventListener('click', async ()=>{
   const errEl = document.getElementById('authError'); errEl.textContent='';
@@ -1044,7 +1046,7 @@ document.getElementById('authSubmit').addEventListener('click', async ()=>{
   if(!API_BASE || !email || !password){ errEl.textContent='Adresse API, email et mot de passe requis.'; return; }
   localStorage.setItem('gt_api_base', API_BASE); apiCfgLabel();
   try{
-    const body = authMode==='login' ? {email,password} : {name,email,password};
+    const body = authMode==='login' ? {email,password} : {name,email,password,phone:document.getElementById('authPhone').value};
     const data = await api('/api/auth/'+authMode, {method:'POST', body:JSON.stringify(body)});
     AUTH_TOKEN = data.token; CURRENT_USER = data.user;
     localStorage.setItem('gt_token', AUTH_TOKEN);
