@@ -25,7 +25,12 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caracteres' });
   }
 
-  const existing = await db.query('SELECT id FROM users WHERE email = $1 OR ($2::text IS NOT NULL AND phone = $2)', [email, phone || null]);
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (digits.length < 8 || digits.length > 15) {
+    return res.status(400).json({ error: 'Numero de telephone requis (8 a 15 chiffres)' });
+  }
+  const last10 = digits.slice(-10);
+  const existing = await db.query("SELECT id FROM users WHERE email = $1 OR RIGHT(regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g'), 10) = $2", [email, last10]);
   if (existing.rows.length) {
     return res.status(409).json({ error: 'Un compte existe deja avec cet email ou ce numero' });
   }
