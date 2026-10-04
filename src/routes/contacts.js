@@ -12,13 +12,13 @@ router.post('/match', requireAuth, async (req, res) => {
   if (!phones.length) return res.status(400).json({ error: 'Liste de numéros requise' });
 
   const result = await db.query(
-    'SELECT id, name, phone FROM users WHERE phone = ANY($1::text[])',
-    [phones]
+    "SELECT id, name, phone FROM users WHERE right(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = ANY($1::text[])",
+    [phones.map(p => String(p||'').replace(/\D/g,'').slice(-10))]
   );
-  const byPhone = new Map(result.rows.map(u => [u.phone, u]));
+  const byPhone = new Map(result.rows.map(u => [String(u.phone||'').replace(/\D/g,'').slice(-10), u]));
 
   const matches = phones.map(phone => {
-    const u = byPhone.get(phone);
+    const u = byPhone.get(String(phone||'').replace(/\D/g,'').slice(-10));
     return u
       ? { phone, matched: true, userId: u.id, name: u.name }
       : { phone, matched: false };
