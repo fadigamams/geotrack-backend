@@ -72,4 +72,14 @@ router.put('/selfie', requireAuth, async (req, res) => {
   res.json({ user: publicUser(u.rows[0]) });
 });
 
+router.put('/phone', requireAuth, async (req, res) => {
+  const raw = String((req.body || {}).phone || '').trim();
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length < 8 || digits.length > 15) return res.status(400).json({ error: 'Numero invalide' });
+  const dup = await db.query('SELECT id FROM users WHERE phone = $1 AND id <> $2', [raw, req.userId]);
+  if (dup.rows.length > 0) return res.status(409).json({ error: 'Numero deja utilise' });
+  const u = await db.query('UPDATE users SET phone=$1 WHERE id=$2 RETURNING *', [raw, req.userId]);
+  res.json({ user: publicUser(u.rows[0]) });
+});
+
 module.exports = router;
