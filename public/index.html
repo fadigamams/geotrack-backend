@@ -2251,6 +2251,16 @@ function variants(p){
   return Object.keys(o);
 }
 async function pick(){
+  var CP=(window.Capacitor&&window.Capacitor.Plugins)?window.Capacitor.Plugins.Contacts:null;
+  if(CP){
+    var pm=await CP.requestPermissions();
+    var ok=(pm&&pm.contacts==="granted");
+    if(ok===false){ alert("Autorisation des contacts refusee"); return null; }
+    var g=await CP.getContacts({projection:{name:true,phones:true}});
+    var o2=[];
+    (g.contacts||[]).forEach(function(c){ var nm=(c.name&&c.name.display)||""; (c.phones||[]).forEach(function(t){ if(t.number){ o2.push({name:nm,tel:t.number}); } }); });
+    return o2;
+  }
   var out=[];
   var r=null; if(navigator.contacts&&navigator.contacts.select){ try{ r=await navigator.contacts.select(["name","tel"],{multiple:true}); }catch(z){ r=null; } } if(r!==null){
     
