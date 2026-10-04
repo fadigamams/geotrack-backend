@@ -2290,13 +2290,13 @@ document.addEventListener("click",async function(e){
       var ms=res.matches||res||[];
       for(var i=0;i<ms.length;i++){
         var m=ms[i];
-        if(m.matched!==true||seen[m.userId]){ continue; }
+        if(m.matched!==true||seen[m.userId]||(typeof CURRENT_USER==="object"&&CURRENT_USER&&m.userId===CURRENT_USER.id)){ continue; }
         seen[m.userId]=1;
         var c2=owner[m.phone]||{};
         try{ await api("/api/contacts",{method:"POST",body:JSON.stringify({userId:m.userId,label:c2.name||m.name})}); added++; }catch(x){}
       }
     }
-    alert(added+" ajoutes / "+phones.length+" numeros envoyes / "+ms.filter(function(x){return x.matched===true;}).length+" reconnus");
+    alert(added+" contact(s) YAM ajoute(s)");
     var nv=document.querySelector("[data-view=repertoire]"); if(nv!==null){ nv.click(); }
   }catch(err){ alert("Erreur sync : "+err.message); busy=false; }
   busy=false;
