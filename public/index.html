@@ -2321,5 +2321,41 @@ document.addEventListener("click",async function(e){
   });
 })();
 </script>
+<script>
+(function(){
+var map={};
+function dg(p){ return String(p||"").replace(/\D/g,"").slice(-10); }
+async function refresh(){
+  try{
+    var r=await api("/api/contacts");
+    var l=Array.isArray(r)?r:(r.contacts||[]);
+    map={};
+    l.forEach(function(c){ map[dg(c.phone)]=c.userId; });
+  }catch(e){}
+}
+function mark(){
+  document.querySelectorAll(".rep-row").forEach(function(row){
+    var p=row.querySelector(".phone");
+    if(row.querySelector(".delbtn")===null&&p&&map.hasOwnProperty(dg(p.textContent))){
+      var b=document.createElement("button");
+      b.className="linkbtn delbtn"; b.textContent="✕"; b.title="Retirer";
+      b.dataset.del=map[dg(p.textContent)]; row.appendChild(b);
+    }
+  });
+}
+document.addEventListener("click",async function(e){
+  var b=e.target.closest(".delbtn"); if(b===null){ return; }
+  e.stopImmediatePropagation(); e.preventDefault();
+  if(confirm("Retirer ce contact du Repertoire ?")===false){ return; }
+  try{
+    await api("/api/contacts/"+b.dataset.del,{method:"DELETE"});
+    toast("Contact retire");
+    var row=b.closest(".rep-row"); if(row!==null){ row.remove(); }
+  }catch(err){ alert("Erreur : "+err.message); }
+},true);
+setInterval(async function(){ await refresh(); mark(); },1500);
+refresh();
+})();
+</script>
 </body>
 </html>
