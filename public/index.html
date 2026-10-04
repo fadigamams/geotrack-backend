@@ -2303,5 +2303,23 @@ document.addEventListener("click",async function(e){
 },true);
 })();
 </script>
+<script>
+(function(){
+  var b=document.createElement("button");
+  b.id="phoneBtn"; b.textContent="📞"; b.title="Mon numero";
+  b.style.cssText="position:fixed;left:12px;bottom:90px;width:44px;height:44px;border-radius:50%;border:0;background:#0f766e;color:#fff;font-size:20px;z-index:9998;box-shadow:0 2px 8px rgba(0,0,0,.3)";
+  document.body.appendChild(b);
+  b.addEventListener("click",async function(){
+    var cur=(typeof CURRENT_USER==="object"&&CURRENT_USER&&CURRENT_USER.phone)||"";
+    var v=prompt("Votre numero de telephone (ex: +225 07 00 00 00 00)",cur);
+    if(v===null){ return; }
+    try{
+      var r=await api("/api/auth/phone",{method:"PUT",body:JSON.stringify({phone:v})});
+      if(r&&r.user&&typeof CURRENT_USER==="object"&&CURRENT_USER){ CURRENT_USER.phone=r.user.phone; }
+      toast("Numero enregistre");
+    }catch(err){ alert("Erreur : "+err.message); }
+  });
+})();
+</script>
 </body>
 </html>
