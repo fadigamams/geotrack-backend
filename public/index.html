@@ -1383,12 +1383,12 @@ async function loadDashboardTrips(alsoHistView){
       const fmt = d=>d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       rows.push({from,to,t1:fmt(t1),t2:fmt(t2),mins,distKm});
     }
-    const dashHtml = rows.slice(-4).reverse().map(r=>`<div class="trip"><div class="n">${r.from} → ${r.to}</div><div class="t">${r.t1} – ${r.t2} (${r.mins} min)</div></div>`).join('');
+    const dashHtml = rows.slice(-4).reverse().map(r=>`<div class="trip"><div class="n">${yamEsc(r.from)} → ${yamEsc(r.to)}</div><div class="t">${r.t1} – ${r.t2} (${r.mins} min)</div></div>`).join('');
     document.getElementById('dashTripsList').innerHTML = dashHtml || renderEmpty;
 
     if(alsoHistView){
       const colors=['blue','orange','green'];
-      const histHtml = rows.slice().reverse().map((r,i)=>`<div class="hist-row"><span class="hdot ${colors[i%3]}">●</span><div class="info"><div class="n">${r.from} → ${r.to}</div><div class="t">${r.t1} – ${r.t2} · ${r.mins} min · ${r.distKm} km</div></div></div>`).join('');
+      const histHtml = rows.slice().reverse().map((r,i)=>`<div class="hist-row"><span class="hdot ${colors[i%3]}">●</span><div class="info"><div class="n">${yamEsc(r.from)} → ${yamEsc(r.to)}</div><div class="t">${r.t1} – ${r.t2} · ${r.mins} min · ${r.distKm} km</div></div></div>`).join('');
       const hl = document.getElementById('histList'); if(hl) hl.innerHTML = histHtml || renderEmpty;
       initHistMap(pts.map(p=>[p.lat,p.lng]));
     }
@@ -1436,7 +1436,7 @@ async function loadGeofences(){
     const list = document.getElementById('zonesList');
     list.innerHTML = data.geofences.length ? data.geofences.map(z=>`
       <div class="row-item"><div class="av" style="background:var(--blue)">📐</div>
-      <div class="info"><div class="n">${z.name}</div><div class="t">Rayon : ${z.radius_m} m</div></div>
+      <div class="info"><div class="n">${yamEsc(z.name)}</div><div class="t">Rayon : ${z.radius_m} m</div></div>
       <span class="tag ${z.active?'actif':'stopped'}">${z.active?'Active':'Inactive'}</span>
       <button class="linkbtn" data-del-zone="${z.id}" style="margin-left:8px">Suppr.</button></div>`).join('')
       : '<div style="padding:16px;color:var(--sub);font-size:13px">Aucune zone créée.</div>';
@@ -1464,7 +1464,7 @@ async function loadShares(){
     const rows = mine.shares.filter(s=>s.status==='active'||s.status==='pending');
     const rowsHtml = (stopLabel)=> rows.length ? rows.map(s=>`
       <div class="row-item"><div class="av">${(s.viewer_name||'?')[0].toUpperCase()}</div>
-      <div class="info"><div class="n">${s.viewer_name}</div><div class="t">${s.status==='active' ? (s.expires_at ? 'Jusqu\'à '+new Date(s.expires_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : 'Jusqu\'à désactivation') : 'En attente d\'acceptation'}</div></div>
+      <div class="info"><div class="n">${yamEsc(s.viewer_name)}</div><div class="t">${s.status==='active' ? (s.expires_at ? 'Jusqu\'à '+new Date(s.expires_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : 'Jusqu\'à désactivation') : 'En attente d\'acceptation'}</div></div>
       <button class="linkbtn" data-stop="${s.id}">${s.status==='active'?stopLabel:'Annuler'}</button></div>`).join('')
       : '<div style="padding:16px;color:var(--sub);font-size:13px">Aucun partage actif.</div>';
     ['sharesList','dashSharesList'].forEach(id=>{
@@ -1485,7 +1485,7 @@ async function loadShares(){
     const pl = document.getElementById('pendingList');
     pl.innerHTML = pending.length ? pending.map(s=>`
       <div class="row-item"><div class="av">${(s.owner_name||'?')[0].toUpperCase()}</div>
-      <div class="info"><div class="n">${s.owner_name} souhaite partager sa position</div><div class="t">avec vous</div></div>
+      <div class="info"><div class="n">${yamEsc(s.owner_name)} souhaite partager sa position</div><div class="t">avec vous</div></div>
       <button class="linkbtn" data-accept="${s.id}" style="border-color:var(--green);color:#0e6b3a">Accepter</button>
       <button class="linkbtn" data-decline="${s.id}" style="margin-left:6px">Refuser</button></div>`).join('')
       : '<div style="padding:16px;color:var(--sub);font-size:13px">Aucune demande en attente.</div>';
@@ -1512,7 +1512,7 @@ async function loadGroups(){
       <div class="list-item">
         <div class="li-icon">👥</div>
         <div class="li-body">
-          <div class="li-title">${g.name}</div>
+          <div class="li-title">${yamEsc(g.name)}</div>
           <div class="li-sub">${g.member_count||1} membre(s)</div>
         </div>
       </div>
@@ -1561,7 +1561,7 @@ async function loadEntreprise(){
         <div class="list-item">
           <div class="li-icon">👤</div>
           <div class="li-body">
-            <div class="li-title">${m.name}</div>
+            <div class="li-title">${yamEsc(m.name)}</div>
             <div class="li-sub">${m.email} - ${m.role}</div>
           </div>
         </div>
@@ -1652,7 +1652,7 @@ async function loadSuperAdmin(){
       <div class="list-item">
         <div class="li-icon">🏢</div>
         <div class="li-body">
-          <div class="li-title">${c.name}</div>
+          <div class="li-title">${yamEsc(c.name)}</div>
           <div class="li-sub">Plan: ${c.plan||'Aucun'} - Statut: ${c.license_status||'Aucune licence'} - Max véhicules: ${c.max_vehicles||'-'}</div>
         </div>
         <div class="li-action" data-company-id="${c.id}" data-company-plan="${c.plan||''}" data-company-max="${c.max_vehicles||''}" style="cursor:pointer">✏️</div>
@@ -1911,7 +1911,7 @@ function renderContacts(){
     return `<div class="rep-row">
       <div class="av">${initials(c.name)}</div>
       <div class="info">
-        <div class="n">${c.name} ${favBtn}</div>
+        <div class="n">${yamEsc(c.name)} ${favBtn}</div>
         <div class="phone">${c.phone}</div>
         <div class="rc-status ${s.cls}">${s.label} <span style="color:var(--sub);font-weight:500">· ${c.meta}</span></div>
       </div>
@@ -1933,12 +1933,12 @@ document.getElementById('repList').addEventListener('click',(e)=>{
   const btn = e.target.closest('[data-act]'); if(!btn) return;
   const c = contacts[parseInt(btn.dataset.i,10)];
   if(btn.dataset.act==='view'){
-    toast(`📍 Position de ${c.name} affichée sur la carte`);
+    toast(`📍 Position de ${yamEsc(c.name)} affichée sur la carte`);
   } else if(btn.dataset.act==='invite'){
-    toast(`Invitation envoyée à ${c.name}`);
+    toast(`Invitation envoyée à ${yamEsc(c.name)}`);
   } else if(btn.dataset.act==='request'){
     reqTarget = c;
-    document.getElementById('reqName').textContent = `Demander à ${c.name} de partager sa position.`;
+    document.getElementById('reqName').textContent = `Demander à ${yamEsc(c.name)} de partager sa position.`;
     document.getElementById('reqOverlay').classList.add('show');
   }
 });
@@ -2374,5 +2374,6 @@ setInterval(async function(){ await refresh(); mark(); },1500);
 refresh();
 })();
 </script>
+<script>function yamEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}</script>
 </body>
 </html>
