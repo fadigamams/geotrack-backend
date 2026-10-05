@@ -317,6 +317,7 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
   main{padding:14px}
 }
 </style>
+<script>function yamEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}</script>
 </head>
 <body>
 <div id="splashScreen">
@@ -1933,9 +1934,9 @@ document.getElementById('repList').addEventListener('click',(e)=>{
   const btn = e.target.closest('[data-act]'); if(!btn) return;
   const c = contacts[parseInt(btn.dataset.i,10)];
   if(btn.dataset.act==='view'){
-    toast(`📍 Position de ${yamEsc(c.name)} affichée sur la carte`);
+    toast(`📍 Position de ${c.name} affichée sur la carte`);
   } else if(btn.dataset.act==='invite'){
-    toast(`Invitation envoyée à ${yamEsc(c.name)}`);
+    toast(`Invitation envoyée à ${c.name}`);
   } else if(btn.dataset.act==='request'){
     reqTarget = c;
     document.getElementById('reqName').textContent = `Demander à ${yamEsc(c.name)} de partager sa position.`;
@@ -2374,6 +2375,5 @@ setInterval(async function(){ await refresh(); mark(); },1500);
 refresh();
 })();
 </script>
-<script>function yamEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}</script>
 </body>
 </html>
