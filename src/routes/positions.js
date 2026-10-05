@@ -24,6 +24,21 @@ async function audit(actorId, targetId, action, allowed) {
 }
 
 // POST /api/positions — l'utilisateur connecté publie sa propre position
+const lastHist = new Map();
+function farEnough(uid, lat, lng, acc) {
+  const p = lastHist.get(uid);
+  if (p) {
+    const k = Math.PI / 180;
+    const x = (lng - p.lng) * k * Math.cos(lat * k);
+    const y = (lat - p.lat) * k;
+    const d = Math.sqrt(x * x + y * y) * 6371000;
+    const lim = Math.max(15, Math.min(50, acc || 0));
+    if (d < lim) return false;
+  }
+  lastHist.set(uid, { lat, lng });
+  return true;
+}
+
 router.post('/', requireAuth, async (req, res) => {
   const { lat, lng, accuracy, speed, heading, battery, isDemo } = req.body || {};
   if (typeof lat !== 'number' || typeof lng !== 'number') {
@@ -37,7 +52,7 @@ router.post('/', requireAuth, async (req, res) => {
        lat=$2, lng=$3, accuracy=$4, speed=$5, heading=$6, battery=$7, is_demo=$8, updated_at=now()`,
     [req.userId, lat, lng, accuracy ?? null, speed ?? null, heading ?? null, battery ?? null, !!isDemo]
   );
-  await db.query(
+  if (farEnough(req.userId, lat, lng, accuracy)) await db.query(
     'INSERT INTO position_history (user_id, lat, lng, accuracy, speed) VALUES ($1,$2,$3,$4,$5)',
     [req.userId, lat, lng, accuracy ?? null, speed ?? null]
   );
