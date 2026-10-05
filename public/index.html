@@ -759,7 +759,7 @@ function distMeters(la1,ln1,la2,ln2){
 // nom que si la position tombe exactement à l'intérieur du bâtiment tagué.
 async function nearestNamedPlace(la,ln){
   try{
-    const q = `[out:json][timeout:8];(node(around:150,${la},${ln})[name];way(around:150,${la},${ln})[name];);out center 10;`;
+    const q = `[out:json][timeout:8];(node(around:500,${la},${ln})[name];way(around:500,${la},${ln})[name];);out center 40;`;
     const res = await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
     if(!res.ok) return null;
     const data = await res.json();
