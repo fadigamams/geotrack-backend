@@ -27,6 +27,7 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '200kb' }));
 
 // Limite générale contre les abus — les positions et l'auth ont des routes sensibles
+app.use('/api/auth/', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { error: 'Trop de tentatives, reessaie plus tard' } }));
 app.use('/api/', rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'geotrack-backend' }));
