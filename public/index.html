@@ -757,11 +757,20 @@ function distMeters(la1,ln1,la2,ln2){
 // en interrogeant les mêmes données OpenStreetMap que celles affichées sur les tuiles de la carte.
 // Beaucoup plus précis qu'une simple géolocalisation inverse au point exact, qui ne retrouve un
 // nom que si la position tombe exactement à l'intérieur du bâtiment tagué.
-async function nearestNamedPlace(la,ln){
-  let n=await nearestNamedPlaceR(la,ln,500);
-  if(n) return n;
-  n=await nearestNamedPlaceR(la,ln,2000);
-  return n?{name:'Près de '+n.name,distance:n.distance}:null;
+let npChain=Promise.resolve();
+function nearestNamedPlace(la,ln){
+  const run=npChain.then(async()=>{
+    let n=await nearestNamedPlaceR(la,ln,500);
+    if(!n){
+      await new Promise(r=>setTimeout(r,500));
+      const m=await nearestNamedPlaceR(la,ln,2000);
+      n=m?{name:'Près de '+m.name,distance:m.distance}:null;
+    }
+    await new Promise(r=>setTimeout(r,700));
+    return n;
+  });
+  npChain=run.catch(()=>{});
+  return run;
 }
 async function nearestNamedPlaceR(la,ln,R){
   try{
