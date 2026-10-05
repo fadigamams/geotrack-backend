@@ -32,7 +32,8 @@ function farEnough(uid, lat, lng, acc) {
     const x = (lng - p.lng) * k * Math.cos(lat * k);
     const y = (lat - p.lat) * k;
     const d = Math.sqrt(x * x + y * y) * 6371000;
-    const lim = Math.max(15, Math.min(50, acc || 0));
+    if (acc && acc > 150) return false;
+    const lim = Math.max(30, acc || 0);
     if (d < lim) return false;
   }
   lastHist.set(uid, { lat, lng });
