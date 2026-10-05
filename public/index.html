@@ -758,8 +758,14 @@ function distMeters(la1,ln1,la2,ln2){
 // Beaucoup plus précis qu'une simple géolocalisation inverse au point exact, qui ne retrouve un
 // nom que si la position tombe exactement à l'intérieur du bâtiment tagué.
 async function nearestNamedPlace(la,ln){
+  let n=await nearestNamedPlaceR(la,ln,500);
+  if(n) return n;
+  n=await nearestNamedPlaceR(la,ln,2000);
+  return n?{name:'Près de '+n.name,distance:n.distance}:null;
+}
+async function nearestNamedPlaceR(la,ln,R){
   try{
-    const q = `[out:json][timeout:8];(node(around:500,${la},${ln})[name];way(around:500,${la},${ln})[name];);out center 40;`;
+    const q = `[out:json][timeout:8];(node(around:${R},${la},${ln})[name];way(around:${R},${la},${ln})[name];);out center 40;`;
     const res = await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
     if(!res.ok) return null;
     const data = await res.json();
