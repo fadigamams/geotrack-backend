@@ -21,6 +21,14 @@ async function isBlocked(userA, userB) {
   return r.rows.length > 0;
 }
 
+async function notMutual(a, b) {
+  const r = await db.query(
+    'SELECT 1 FROM contacts x WHERE x.owner_id=$1 AND x.contact_user_id=$2 AND EXISTS (SELECT 1 FROM contacts y WHERE y.owner_id=$2 AND y.contact_user_id=$1) LIMIT 1',
+    [a, b]
+  );
+  return r.rows.length === 0;
+}
+
 async function isMember(conversationId, userId) {
   const r = await db.query(
     'SELECT 1 FROM conversation_members WHERE conversation_id=$1 AND user_id=$2',
@@ -35,6 +43,9 @@ router.post('/conversations', requireAuth, async (req, res) => {
   if (!withUserId) return res.status(400).json({ error: 'withUserId requis' });
   if (withUserId === req.userId) return res.status(400).json({ error: 'Impossible de discuter avec vous-même' });
 
+  if (await notMutual(req.userId, withUserId)) {
+    return res.status(403).json({ error: 'Ajoutez-vous mutuellement dans le Répertoire pour discuter' });
+  }
   if (await isBlocked(req.userId, withUserId)) {
     return res.status(403).json({ error: 'Conversation impossible (blocage actif)' });
   }
