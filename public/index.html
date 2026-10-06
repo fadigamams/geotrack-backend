@@ -2080,17 +2080,17 @@ document.querySelectorAll('[data-revoke]').forEach(b=>{
  function showBar(){
   if(bar!==null) return;
   bar=document.createElement('div'); bar.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99999;background:#dc2626;color:#fff;padding:12px;text-align:center;font-weight:700';
-  bar.innerHTML='🚨 SOS actif — contacts alertés <button id="sosSafe" style="margin-left:10px;padding:8px 12px;border-radius:10px;border:0;font-weight:700">✅ Je suis en sécurité</button>';
+  bar.innerHTML='🚨 SOS actif <button id="sosSafe" style="margin-left:10px;padding:8px 12px;border-radius:10px;border:0;font-weight:700">✅ Je suis en sécurité</button>';
   document.body.appendChild(bar);
   bar.querySelector('#sosSafe').onclick=async function(){ try{ await api('/api/sos/'+curId+'/resolve',{method:'POST'}); }catch(e){} curId=null; bar.remove(); bar=null; if(typeof toast==='function'){ toast('✅ Vos contacts sont prévenus'); } };
  }
  window.yamSosStart=function(){
   if(typeof AUTH_TOKEN==='undefined'||AUTH_TOKEN===''||AUTH_TOKEN===null){ alert('Connecte-toi d\'abord'); return; }
   if(curId!==null){ alert('Un SOS est déjà actif'); return; }
-  if(confirm('Envoyer un SOS avec votre position à tous vos contacts ?')===false) return;
+  if(confirm('Envoyer un SOS avec votre position à vos contacts réciproques ?')===false) return;
   if(typeof toast==='function'){ toast('📍 Recherche de votre position...'); }
   navigator.geolocation.getCurrentPosition(async function(p){
-   try{ var r=await api('/api/sos',{method:'POST',body:JSON.stringify({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy})}); curId=r.id; showBar(); if(typeof toast==='function'){ toast('🚨 SOS envoyé à '+r.sent+' contact(s)'); } }catch(e){ alert('Erreur SOS : '+e.message); }
+   try{ var r=await api('/api/sos',{method:'POST',body:JSON.stringify({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy})}); curId=r.id; showBar(); if(r.sent===0){ alert('Aucun contact reciproque : personne n a ete alerte. Demande a tes contacts de t ajouter en retour, ou appelle les secours.'); } if(typeof toast==='function'){ toast('🚨 SOS envoyé à '+r.sent+' contact(s)'); } }catch(e){ alert('Erreur SOS : '+e.message); }
   },function(){ alert('Position introuvable : active la localisation'); },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
  };
  setTimeout(async function(){ try{ if(typeof AUTH_TOKEN==='undefined'||AUTH_TOKEN==='') return; var a=await api('/api/sos/active'); if(a.id){ curId=a.id; showBar(); } }catch(e){} },6000);
