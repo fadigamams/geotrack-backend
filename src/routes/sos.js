@@ -8,7 +8,7 @@ let ready = null;
 function init() {
   return db.query('CREATE TABLE IF NOT EXISTS sos_events (id BIGSERIAL PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, lat DOUBLE PRECISION, lng DOUBLE PRECISION, accuracy DOUBLE PRECISION, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), resolved_at TIMESTAMPTZ)');
 }
-async function contactsOf(uid) { const r = await db.query('SELECT contact_user_id AS id FROM contacts WHERE owner_id=$1', [uid]); return r.rows; }
+async function contactsOf(uid) { const r = await db.query('SELECT c.contact_user_id AS id FROM contacts c WHERE c.owner_id=$1 AND EXISTS (SELECT 1 FROM contacts r WHERE r.owner_id=c.contact_user_id AND r.contact_user_id=$1)', [uid]); return r.rows; }
 router.post('/', requireAuth, async (req, res) => {
   try { ready = ready || init(); await ready;
     const b = req.body || {};
