@@ -1826,9 +1826,9 @@ function renderBubble(m){
     try{ meta = typeof m.meta === 'string' ? JSON.parse(m.meta) : m.meta; }catch(e){}
     let inner;
     if(m.kind === 'image' && meta && meta.url){
-      inner = '<img src="'+meta.url+'" style="max-width:220px;border-radius:10px;display:block">';
+      inner = '<img src="'+yamEsc(meta.url)+'" style="max-width:220px;border-radius:10px;display:block">';
     } else if(m.kind === 'video' && meta && meta.url){
-      inner = '<video src="'+meta.url+'" controls style="max-width:220px;border-radius:10px;display:block"></video>';
+      inner = '<video src="'+yamEsc(meta.url)+'" controls style="max-width:220px;border-radius:10px;display:block"></video>';
     } else {
       inner = m.body.replace(/</g,'&lt;');
     }
