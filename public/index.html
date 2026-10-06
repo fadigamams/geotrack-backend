@@ -318,6 +318,15 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 }
 </style>
 <script>function yamEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}</script>
+<script>
+function yamStored(){try{return JSON.parse(localStorage.getItem('yamGroups')||'{}');}catch(e){return {};}}
+function yamGroupsFor(c){var g=c.isFavorite?['favoris']:[];var v=yamStored()[String(c.userId)];if(v)g.push(v);return g;}
+function yamCycleGroup(c){var o=['famille','amis','travail'],k=String(c.userId||c.name),m=yamStored(),n=o[o.indexOf(m[k])+1];
+if(n){m[k]=n;}else{delete m[k];}
+try{localStorage.setItem('yamGroups',JSON.stringify(m));}catch(e){}
+c.groups=(c.groups||[]).filter(function(x){return o.indexOf(x)<0;});if(n){c.groups.push(n);}
+toast(yamEsc(c.name)+' : '+(n||'aucun groupe'));}
+</script>
 </head>
 <body>
 <div id="splashScreen">
@@ -1912,7 +1921,7 @@ function renderContacts(){
     return `<div class="rep-row">
       <div class="av">${initials(c.name)}</div>
       <div class="info">
-        <div class="n">${yamEsc(c.name)} ${favBtn}</div>
+        <div class="n">${yamEsc(c.name)} ${favBtn} <span class="linkbtn" data-act="group" data-i="${contacts.indexOf(c)}">🏷️ ${yamEsc((c.groups||[]).filter(function(x){return x!=="favoris";}).join(""))}</span></div>
         <div class="phone">${c.phone}</div>
         <div class="rc-status ${s.cls}">${s.label} <span style="color:var(--sub);font-weight:500">· ${c.meta}</span></div>
       </div>
@@ -1933,6 +1942,7 @@ document.getElementById('grpTabs').addEventListener('click',(e)=>{
 document.getElementById('repList').addEventListener('click',(e)=>{
   const btn = e.target.closest('[data-act]'); if(!btn) return;
   const c = contacts[parseInt(btn.dataset.i,10)];
+  if(btn.dataset.act==="group"){ yamCycleGroup(c); renderContacts(); return; }
   if(btn.dataset.act==='view'){
     toast(`📍 Position de ${c.name} affichée sur la carte`);
   } else if(btn.dataset.act==='invite'){
@@ -2198,7 +2208,7 @@ async function load(){
       var st=MAP[c.status]||"none";
       var m=META[st]||"";
       if(st==="on"&&c.expiresAt){ m="Jusqu a "+hhmm(c.expiresAt); }
-      contacts.push({userId:c.userId,name:c.name,phone:c.phone||"",groups:c.isFavorite?["favoris"]:[],status:st,meta:m});
+      contacts.push({userId:c.userId,name:c.name,phone:c.phone||"",groups:yamGroupsFor(c),status:st,meta:m});
     });
     renderContacts();
   }catch(e){}
