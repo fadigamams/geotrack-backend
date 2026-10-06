@@ -24,6 +24,14 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.tr
 const corsOptions = { origin: allowedOrigins, credentials: true };
 
 app.use(cors(corsOptions));
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=15552000');
+  next();
+});
 app.use(express.json({ limit: '200kb' }));
 
 // Limite générale contre les abus — les positions et l'auth ont des routes sensibles
