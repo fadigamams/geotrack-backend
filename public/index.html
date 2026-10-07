@@ -1688,7 +1688,7 @@ async function loadSuperAdmin(){
 }
 
 function logoutYAM(){ try{ localStorage.removeItem("gt_token"); localStorage.removeItem("gt_user"); }catch(e){} location.reload(); }
-async function newMessageYAM(){ const id = prompt("Email ou telephone du contact :"); if(!id) return; try{ const r = await api("/api/users/lookup?identifier="+encodeURIComponent(id.trim())); const c = await api("/api/conversations", {method:"POST", body: JSON.stringify({withUserId: r.user.id})}); await loadConversations(); openConversation(c.conversationId, r.user.id); }catch(err){ toast(err.message||"Contact introuvable"); } }
+async function newMessageYAM(){ const id = prompt("Email ou telephone du contact :"); if(!id) return; try{ const r = await api("/api/users/lookup?identifier="+encodeURIComponent(id.trim())); const c = await api("/api/conversations", {method:"POST", body: JSON.stringify({withUserId: r.user.id})}); await loadConversations(); openConversation(c.conversationId, r.user.id); }catch(err){ alert(err.message||"Contact introuvable"); } }
 async function loadAdminStats(){
   try{
     const d = await api('/api/admin/stats');
