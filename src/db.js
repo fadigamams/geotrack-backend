@@ -5,6 +5,10 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
+pool.on('error', (err) => {
+  console.error('Erreur pool PostgreSQL :', err.message);
+});
+
 module.exports = {
   query: (text, params) => pool.query(text, params),
   pool,
