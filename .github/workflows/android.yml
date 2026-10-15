@@ -36,15 +36,26 @@ jobs:
           done
           rm -rf android/app/src/main/res/mipmap-anydpi-v26
       - run: npx cap sync android
-      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - run: cd android && chmod +x gradlew && ./gradlew assembleRelease
+      - name: Signer APK
+        env:
+          YAM_KEY_B64: ${{ secrets.YAM_KEY_B64 }}
+          YAM_CERT_B64: ${{ secrets.YAM_CERT_B64 }}
+        run: |
+          echo "$YAM_KEY_B64" | base64 -d > key.pk8
+          echo "$YAM_CERT_B64" | base64 -d > cert.der
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          $BT/zipalign -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          $BT/apksigner sign --key key.pk8 --cert cert.der --out YAM.apk aligned.apk
+          $BT/apksigner verify --print-certs YAM.apk
+          rm -f key.pk8 cert.der aligned.apk
       - uses: actions/upload-artifact@v4
         with:
           name: yam-apk
-          path: yam-android/android/app/build/outputs/apk/debug/app-debug.apk
+          path: yam-android/YAM.apk
       - name: Publier la release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk YAM.apk
           gh release view yam-apk --repo "${{ github.repository }}" > /dev/null 2>&1 || gh release create yam-apk --repo "${{ github.repository }}" --title "YAM - You and Me" --notes "Derniere version de YAM (APK Android)."
           gh release upload yam-apk YAM.apk --clobber --repo "${{ github.repository }}"
