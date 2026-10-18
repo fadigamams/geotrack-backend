@@ -5,7 +5,7 @@ s.textContent='#liveBox{position:fixed;top:0;left:0;right:0;bottom:0;z-index:999
 document.head.appendChild(s);}
 function html(){return '<button id="liveX">Fermer</button><div id="liveStage"><div id="liveMap"></div></div><div id="liveCar"></div><div id="liveHud"><div id="liveSpd">-- km/h</div><div id="liveInfo">Recherche du livreur...</div></div>';}
 async function tick(){try{var d=await api('/api/deliveries/'+did+'/live');var info=document.getElementById('liveInfo');if(info===null){return;}
-if(d.live===true){var p=d.position;map.setView([p.lat,p.lng],17,{animate:false});document.getElementById('liveMap').style.transform='rotateX(55deg) rotate('+(-(p.heading||0))+'deg)';document.getElementById('liveSpd').textContent=Math.round((p.speed||0)*3.6)+' km/h';var age=Math.round((Date.now()-new Date(p.updated_at).getTime())/1000);info.textContent='Position il y a '+age+' s';}
+if(d.live===true){var p=d.position;map.setView([p.lat,p.lng],17,{animate:false});document.getElementById('liveMap').style.transform='rotateX(55deg) rotate('+(-(p.heading||0))+'deg)';document.getElementById('liveSpd').textContent=Math.round((p.speed||0)*3.6)+' km/h';var age=Math.round((Date.now()-new Date(p.updated_at).getTime())/1000);info.textContent=(p.name||'Livreur')+(p.is_demo?' - DEMO':'')+' - vitesse brute '+(Math.round((p.speed||0)*10)/10)+' - il y a '+age+' s';}
 else{info.textContent='Suivi indisponible (livraison non en cours, ou livreur sans position)';}}catch(e){}}
 function stop(){if(tm){clearInterval(tm);tm=null;}if(map){map.remove();map=null;}var b=document.getElementById('liveBox');if(b){b.remove();}}
 window.yamLive=function(id){stop();css();did=id;var b=document.createElement('div');b.id='liveBox';b.innerHTML=html();document.body.appendChild(b);

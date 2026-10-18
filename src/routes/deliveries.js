@@ -92,7 +92,7 @@ router.get('/:id/live', requireAuth, async (req, res) => {
     if (!d.rows.length) return res.status(404).json({ error: 'Livraison introuvable' });
     const row = d.rows[0];
     if (['picked', 'en_route', 'near'].indexOf(row.status) < 0) return res.json({ live: false, status: row.status });
-    const c = await db.query('SELECT lat, lng, speed, heading, updated_at, is_demo FROM current_positions WHERE user_id = $1', [row.courier_id]);
+    const c = await db.query('SELECT cp.lat, cp.lng, cp.speed, cp.heading, cp.updated_at, cp.is_demo, u.name FROM current_positions cp JOIN users u ON u.id = cp.user_id WHERE cp.user_id = $1', [row.courier_id]);
     if (!c.rows.length) return res.json({ live: false, status: row.status });
     res.json({ live: true, status: row.status, position: c.rows[0] });
   } catch (e) {
