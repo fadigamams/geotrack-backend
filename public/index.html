@@ -321,10 +321,13 @@ h2.hello{font-size:23px;margin:0 0 4px;font-weight:800}
 <script>
 function yamStored(){try{return JSON.parse(localStorage.getItem('yamGroups')||'{}');}catch(e){return {};}}
 function yamGroupsFor(c){var g=c.isFavorite?['favoris']:[];var v=yamStored()[String(c.userId)];if(v)g.push(v);return g;}
+var yamSynced=0;
+function yamPush(k,g){try{if(AUTH_TOKEN){api('/api/contact-groups',{method:'PUT',body:JSON.stringify({key:k,grp:g})}).catch(function(){});}}catch(e){}}
+async function yamSync(){if(yamSynced){return;}var r=await api('/api/contact-groups');var sv=r.groups||{};var m=yamStored();var k;for(k in m){if(typeof sv[k]==='undefined'){yamPush(k,m[k]);}}for(k in sv){m[k]=sv[k];}try{localStorage.setItem('yamGroups',JSON.stringify(m));}catch(e){}yamSynced=1;}
 function yamCycleGroup(c){var o=['famille','amis','travail'],k=String(c.userId||c.name),m=yamStored(),n=o[o.indexOf(m[k])+1];
 if(n){m[k]=n;}else{delete m[k];}
 try{localStorage.setItem('yamGroups',JSON.stringify(m));}catch(e){}
-c.groups=(c.groups||[]).filter(function(x){return o.indexOf(x)<0;});if(n){c.groups.push(n);}
+yamPush(k,n||'');c.groups=(c.groups||[]).filter(function(x){return o.indexOf(x)<0;});if(n){c.groups.push(n);}
 toast(yamEsc(c.name)+' : '+(n||'aucun groupe'));}
 </script>
 </head>
@@ -2203,6 +2206,7 @@ async function load(){
   try{
     var r=await api("/api/contacts");
     var l=Array.isArray(r)?r:(r.contacts||[]);
+    try{await yamSync();}catch(e){}
     contacts.length=0;
     l.forEach(function(c){
       var st=MAP[c.status]||"none";
