@@ -86,4 +86,18 @@ router.post('/:id/pod', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/:id/live', requireAuth, async (req, res) => {
+  try {
+    const d = await db.query('SELECT courier_id, status FROM deliveries WHERE id = $1 AND (courier_id = $2 OR client_id = $2)', [req.params.id, req.userId]);
+    if (!d.rows.length) return res.status(404).json({ error: 'Livraison introuvable' });
+    const row = d.rows[0];
+    if (['picked', 'en_route', 'near'].indexOf(row.status) < 0) return res.json({ live: false, status: row.status });
+    const c = await db.query('SELECT lat, lng, speed, heading, updated_at, is_demo FROM current_positions WHERE user_id = $1', [row.courier_id]);
+    if (!c.rows.length) return res.json({ live: false, status: row.status });
+    res.json({ live: true, status: row.status, position: c.rows[0] });
+  } catch (e) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 module.exports = router;
