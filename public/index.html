@@ -1630,7 +1630,7 @@ async function loadLivraisons(){
       const cur = data.deliveries.find(x=>String(x.id)===b.dataset.nextstatus);
       const i = order.indexOf(cur.status);
       const next = order[i+1] || 'delivered';
-      try{ await api('/api/deliveries/'+b.dataset.nextstatus+'/status',{method:'PUT',body:JSON.stringify({status:next})}); loadLivraisons(); }
+      try{ await api('/api/deliveries/'+b.dataset.nextstatus+'/status',{method:'PUT',body:JSON.stringify({status:next})}); if(['picked','en_route','near'].indexOf(next)>=0 && typeof sharing!=='undefined' && sharing===false && confirm('Activer le partage de position pendant la livraison (4 h) ?')){ var r4=document.querySelector('input[name="dur"][value="240"]'); if(r4){ r4.checked=true; } document.getElementById('confirmShare').click(); } loadLivraisons(); }
       catch(err){ toast('Erreur: '+err.message); }
     }));
     box.querySelectorAll('[data-live]').forEach(x=>x.addEventListener('click', ()=>{ if(window.yamLive){ window.yamLive(x.dataset.live); } }));
@@ -2390,6 +2390,6 @@ setInterval(async function(){ await refresh(); mark(); },1500);
 refresh();
 })();
 </script>
-<script src="/live.js?v=2"></script>
+<script src="/live.js?v=3"></script>
 </body>
 </html>
