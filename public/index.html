@@ -1623,7 +1623,7 @@ async function loadLivraisons(){
         '<div><b>'+d.description+'</b><div class="sub">'+(d.destination||'')+'</div></div>' +
         '<span class="tag actif">'+statusLabel+'</span></div>' +
         (d.pod_note ? '<div class="sub">Preuve: '+d.pod_note+'</div>' : '') +
-        btns + '</div>';
+        btns + (['picked','en_route','near'].indexOf(d.status)>=0 ? '<button class="btn ghost" data-live="'+d.id+'" style="margin-top:8px">Suivre en direct</button>' : '') + '</div>';
     }).join('');
     box.querySelectorAll('[data-nextstatus]').forEach(b=>b.addEventListener('click', async ()=>{
       const order = ['pending','picked','en_route','near','delivered'];
@@ -1633,6 +1633,7 @@ async function loadLivraisons(){
       try{ await api('/api/deliveries/'+b.dataset.nextstatus+'/status',{method:'PUT',body:JSON.stringify({status:next})}); loadLivraisons(); }
       catch(err){ toast('Erreur: '+err.message); }
     }));
+    box.querySelectorAll('[data-live]').forEach(x=>x.addEventListener('click', ()=>{ if(window.yamLive){ window.yamLive(x.dataset.live); } }));
     box.querySelectorAll('[data-addnote]').forEach(b=>b.addEventListener('click', async ()=>{
       const note = prompt('Note de preuve (ex: remis en main propre a...)');
       if(!note) return;
@@ -2389,5 +2390,6 @@ setInterval(async function(){ await refresh(); mark(); },1500);
 refresh();
 })();
 </script>
+<script src="/live.js"></script>
 </body>
 </html>
