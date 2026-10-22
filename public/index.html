@@ -1313,7 +1313,7 @@ function initHistMap(routePoints){
   }
   histMapInstance.eachLayer(l=>{ if(l instanceof L.Polyline || l instanceof L.CircleMarker) histMapInstance.removeLayer(l); });
   const route = (routePoints && routePoints.length>=2) ? routePoints : null;
-  if(route===null){ return; }
+  if(route===null){ try{ navigator.geolocation.getCurrentPosition(function(g){ histMapInstance.setView([g.coords.latitude,g.coords.longitude],14); },function(){},{timeout:8000}); }catch(e){} return; }
   L.polyline(route,{color:'#2f6fed',weight:4}).addTo(histMapInstance);
   L.circleMarker(route[0],{radius:6,color:'#1fae5b',fillColor:'#1fae5b',fillOpacity:1}).addTo(histMapInstance);
   L.circleMarker(route[route.length-1],{radius:6,color:'#e5484d',fillColor:'#e5484d',fillOpacity:1}).addTo(histMapInstance);
