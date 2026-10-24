@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'Identifiants invalides' });
 
-  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'fadigamams@gmail.com';
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
   if (superAdminEmail && user.email === superAdminEmail && !user.is_super_admin) {
     await db.query('UPDATE users SET is_super_admin = true WHERE id = $1', [user.id]);
     user.is_super_admin = true;
